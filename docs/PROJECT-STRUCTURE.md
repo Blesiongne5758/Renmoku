@@ -26,8 +26,10 @@ renmoku/
 │   ├── LANDING-PAGE.md
 │   ├── VEHICLE-DETAIL-PAGE.md
 │   ├── BOOKING-FLOW-STEP2-UPDATE.md
+│   ├── BOOKING-STORE.md           # useBookingStore documentation
 │   ├── TERMS-AND-CONDITIONS.md
 │   ├── TERMS-CORPORATE-V2-UPDATE.md
+│   ├── PRISMA-SCHEMA.md           # Database schema documentation
 │   └── UI-UX-OVERHAUL.md
 │
 ├── src/
@@ -66,8 +68,12 @@ renmoku/
 │   │   ├── TermsPage.tsx          # Halaman S&K
 │   │   └── DatabaseSchemaPage.tsx # Visualisasi database schema
 │   │
-│   ├── stores/                    # State management
-│   │   └── useAppStore.ts         # Zustand store (global state)
+│   ├── stores/                    # Global state management
+│   │   └── useAppStore.ts         # Zustand store (auth, UI, global state)
+│   │
+│   ├── store/                     # Feature-specific state management
+│   │   ├── useBookingStore.ts     # Booking flow state (steps, data, pricing)
+│   │   └── index.ts               # Export all feature stores
 │   │
 │   ├── data/                      # Data & constants
 │   │   ├── mockData.ts            # Mock data untuk development
@@ -301,7 +307,7 @@ sleep(1000)                          // Promise-based sleep
 
 ## 🔄 State Management
 
-### Zustand Store
+### 1. useAppStore (Global State)
 ```typescript
 // src/stores/useAppStore.ts
 
@@ -314,10 +320,6 @@ interface AppState {
   // Auth
   currentUser: User | null;
   isAuthenticated: boolean;
-  
-  // Booking
-  bookingStep: number;
-  currentBooking: Partial<Booking> | null;
   
   // Owner Settings
   ownerSettings: {
@@ -334,6 +336,87 @@ interface AppState {
   setOwnerSettings: (settings: Partial<OwnerSettings>) => void;
 }
 ```
+
+**Digunakan untuk:**
+- ✅ Authentication (user, login, logout)
+- ✅ UI navigation (currentPage, menuOpen)
+- ✅ Selected vehicle (dari FleetPage ke DetailPage)
+- ✅ Owner settings (DP percentage)
+
+### 2. useBookingStore (Booking State)
+```typescript
+// src/store/useBookingStore.ts
+
+interface BookingState {
+  // Step tracking
+  currentStep: number;
+  
+  // Booking data
+  vehicleId: string | null;
+  durationType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | null;
+  withDriver: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  
+  // Renter info
+  renterInfo: {
+    fullName: string;
+    ktpNumber: string;
+    simNumber: string;
+    address: string;
+    phone: string;
+    email: string;
+  };
+  
+  // Trip plan
+  tripPlan: {
+    origin: string;
+    destination: string;
+    purpose: string;
+  };
+  
+  // Guarantee
+  guaranteeType: 'KTP' | 'BPKB' | 'CASH' | 'GUARANTEE_LETTER' | null;
+  guaranteeDocs: string[];
+  
+  // Pricing
+  totalPrice: number;
+  dpAmount: number;
+  
+  // Actions
+  setCurrentStep: (step: number) => void;
+  setVehicle: (vehicleId: string) => void;
+  setDuration: (type: 'DAILY' | 'WEEKLY' | 'MONTHLY', withDriver: boolean) => void;
+  setDates: (startDate: string, endDate: string) => void;
+  setRenterInfo: (info: Partial<BookingState['renterInfo']>) => void;
+  setTripPlan: (plan: Partial<BookingState['tripPlan']>) => void;
+  setGuarantee: (type: BookingState['guaranteeType'], docs: string[]) => void;
+  calculatePricing: (dailyPrice: number, weeklyPrice: number, monthlyPrice: number) => void;
+  reset: () => void;
+}
+```
+
+**Digunakan untuk:**
+- ✅ Booking flow steps (1-5)
+- ✅ Booking data (duration, dates, renter info, trip plan)
+- ✅ Pricing calculation (auto-calculate total & DP)
+- ✅ Guarantee & documents
+
+### Kapan Menggunakan yang Mana?
+
+| State | useAppStore | useBookingStore |
+|-------|-------------|-----------------|
+| User auth | ✅ | ❌ |
+| Current page | ✅ | ❌ |
+| Selected vehicle | ✅ | ❌ |
+| Booking step | ❌ | ✅ |
+| Booking data | ❌ | ✅ |
+| Pricing | ❌ | ✅ |
+| Owner settings | ✅ | ❌ |
+
+**Rule of Thumb:**
+- **useAppStore** → Data global yang dibutuhkan di banyak tempat
+- **useBookingStore** → Data spesifik untuk booking flow
 
 ---
 
