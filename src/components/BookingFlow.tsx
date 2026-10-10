@@ -1,43 +1,66 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Car, Calendar, Users, MapPin, CreditCard, FileText, 
   CheckCircle, ArrowRight, ArrowLeft, Upload, Shield,
   AlertCircle, Clock, PenTool
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import { useBookingStore } from '../store/useBookingStore';
 import { formatCurrency } from '../data/mockData';
 import { getTermsByUserType } from '../data/termsAndConditions';
 import TermsAndConditions from './TermsAndConditions';
 
 export default function BookingFlow() {
-  const { selectedVehicle, setCurrentPage, setBookingStep, bookingStep } = useAppStore();
-  const [rentalDuration, setRentalDuration] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [rentalType, setRentalType] = useState<'with_driver' | 'self_drive'>('with_driver');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [formData, setFormData] = useState({
-    fullName: '',
-    ktpNumber: '',
-    simNumber: '',
-    address: '',
-    phone: '',
-    email: '',
-    originCity: '',
-    destinationCity: '',
-    estimatedDistance: '',
-    tripPurpose: '',
-    guaranteeType: '',
-    paymentMethod: '',
-    agreeTerms: false,
-  });
+  const { selectedVehicle, setCurrentPage } = useAppStore();
+  const {
+    currentStep,
+    setCurrentStep,
+    durationType,
+    setDuration,
+    withDriver,
+    startDate,
+    endDate,
+    setDates,
+    renterInfo,
+    setRenterInfo,
+    tripPlan,
+    setTripPlan,
+    guaranteeType,
+    guaranteeDocs,
+    setGuarantee,
+    totalPrice,
+    dpAmount,
+    calculatePricing,
+    reset,
+  } = useBookingStore();
 
-  // Upload status tracking
+  // Local state for UI-only concerns
   const [uploadStatus, setUploadStatus] = useState({
     ktp: false,
     sim: false,
     kk: false,
   });
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Initialize vehicle and calculate pricing when component mounts
+  useEffect(() => {
+    if (selectedVehicle) {
+      useBookingStore.getState().setVehicle(selectedVehicle.id);
+    }
+  }, [selectedVehicle]);
+
+  // Calculate pricing whenever dates or duration changes
+  useEffect(() => {
+    if (selectedVehicle && durationType && startDate && endDate) {
+      calculatePricing(
+        selectedVehicle.pricePerDay,
+        selectedVehicle.pricePerWeek,
+        selectedVehicle.pricePerMonth
+      );
+    }
+  }, [durationType, startDate, endDate, withDriver, selectedVehicle, calculatePricing]);
 
   if (!selectedVehicle) {
     return (
@@ -65,37 +88,31 @@ export default function BookingFlow() {
     { id: 5, title: 'Konfirmasi', icon: CheckCircle },
   ];
 
-  const calculateTotal = () => {
-    const days = startDate && endDate 
-      ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
-      : 1;
-    
-    let basePrice = 0;
-    if (rentalDuration === 'daily') basePrice = days * selectedVehicle.pricePerDay;
-    else if (rentalDuration === 'weekly') basePrice = Math.ceil(days / 7) * selectedVehicle.pricePerWeek;
-    else basePrice = Math.ceil(days / 30) * selectedVehicle.pricePerMonth;
-
-    const driverFee = rentalType === 'with_driver' ? days * 300000 : 0;
-    const total = basePrice + driverFee;
-    const dp = total * 0.5;
-
-    return { days, basePrice, driverFee, total, dp };
-  };
-
-  const pricing = calculateTotal();
+  // Calculate days for display
+  const days = startDate && endDate 
+    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+    : 1;
 
   const handleNext = () => {
-    if (bookingStep < 5) {
-      setBookingStep(bookingStep + 1);
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1);
     } else {
       setCurrentPage('success');
     }
   };
 
   const handleBack = () => {
-    if (bookingStep > 1) {
-      setBookingStep(bookingStep - 1);
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
     }
+  };
+
+  // Helper to convert duration type
+  const getDurationTypeLabel = (type: string | null) => {
+    if (type === 'DAILY') return 'Harian';
+    if (type === 'WEEKLY') return 'Mingguan';
+    if (type === 'MONTHLY') return 'Bulanan';
+    return 'Harian';
   };
 
   return (
@@ -111,12 +128,12 @@ export default function BookingFlow() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Progress</span>
-              <span className="text-sm text-gold-400 font-medium">Step {bookingStep}/5</span>
+              <span className="text-sm text-gold-400 font-medium">Step {currentStep}/5</span>
             </div>
             <div className="h-2 rounded-full neu-pressed overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(bookingStep / 5) * 100}%` }}
+                animate={{ width: `${(currentStep / 5) * 100}%` }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
                 className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
               />
@@ -133,26 +150,26 @@ export default function BookingFlow() {
                     animate={{ scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                     className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
-                      bookingStep >= step.id
+                      currentStep >= step.id
                         ? 'bg-gradient-to-br from-gold-500 to-gold-600 text-luxury-900'
                         : 'neu-soft text-gray-500'
                     }`}
                   >
-                    {bookingStep > step.id ? (
+                    {currentStep > step.id ? (
                       <CheckCircle className="w-6 h-6" />
                     ) : (
                       <step.icon className="w-5 h-5" />
                     )}
                   </motion.div>
                   <span className={`text-xs font-medium hidden sm:block ${
-                    bookingStep >= step.id ? 'text-gold-400' : 'text-gray-500'
+                    currentStep >= step.id ? 'text-gold-400' : 'text-gray-500'
                   }`}>
                     {step.title}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
                   <div className={`flex-1 h-0.5 mx-2 ${
-                    bookingStep > step.id ? 'bg-gold-500' : 'bg-white/5'
+                    currentStep > step.id ? 'bg-gold-500' : 'bg-white/5'
                   }`} />
                 )}
               </div>
@@ -166,7 +183,7 @@ export default function BookingFlow() {
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               <motion.div
-                key={bookingStep}
+                key={currentStep}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -174,7 +191,7 @@ export default function BookingFlow() {
                 className="card-luxury p-6"
               >
                 {/* Step 1: Duration & Options */}
-                {bookingStep === 1 && (
+                {currentStep === 1 && (
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
@@ -188,23 +205,23 @@ export default function BookingFlow() {
                       <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Durasi Sewa</label>
                       <div className="grid grid-cols-3 gap-3">
                         {[
-                          { id: 'daily', label: 'Harian', desc: '1-6 hari' },
-                          { id: 'weekly', label: 'Mingguan', desc: '7-29 hari' },
-                          { id: 'monthly', label: 'Bulanan', desc: '30+ hari' },
+                          { id: 'DAILY', label: 'Harian', desc: '1-6 hari' },
+                          { id: 'WEEKLY', label: 'Mingguan', desc: '7-29 hari' },
+                          { id: 'MONTHLY', label: 'Bulanan', desc: '30+ hari' },
                         ].map((opt) => (
                           <motion.button
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setRentalDuration(opt.id as any)}
+                            onClick={() => setDuration(opt.id as any, withDriver)}
                             className={`p-4 rounded-xl text-left transition-all ${
-                              rentalDuration === opt.id
+                              durationType === opt.id
                                 ? 'neu-gold'
                                 : 'neu-soft'
                             }`}
                           >
                             <p className={`font-medium ${
-                              rentalDuration === opt.id ? 'text-gold-300' : 'text-gray-300'
+                              durationType === opt.id ? 'text-gold-300' : 'text-gray-300'
                             }`}>
                               {opt.label}
                             </p>
@@ -219,23 +236,23 @@ export default function BookingFlow() {
                       <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Opsi Sewa</label>
                       <div className="grid grid-cols-2 gap-3">
                         {[
-                          { id: 'with_driver', label: 'Dengan Driver', icon: '🚗', desc: 'Termasuk driver profesional' },
-                          { id: 'self_drive', label: 'Lepas Kunci', icon: '🔑', desc: 'Self drive, bebas kemana saja' },
+                          { id: true, label: 'Dengan Driver', icon: '🚗', desc: 'Termasuk driver profesional' },
+                          { id: false, label: 'Lepas Kunci', icon: '🔑', desc: 'Self drive, bebas kemana saja' },
                         ].map((opt) => (
                           <motion.button
-                            key={opt.id}
+                            key={String(opt.id)}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setRentalType(opt.id as any)}
+                            onClick={() => setDuration(durationType || 'DAILY', opt.id)}
                             className={`p-4 rounded-xl text-left transition-all ${
-                              rentalType === opt.id
+                              withDriver === opt.id
                                 ? 'neu-gold'
                                 : 'neu-soft'
                             }`}
                           >
                             <span className="text-2xl">{opt.icon}</span>
                             <p className={`font-medium mt-2 ${
-                              rentalType === opt.id ? 'text-gold-300' : 'text-gray-300'
+                              withDriver === opt.id ? 'text-gold-300' : 'text-gray-300'
                             }`}>
                               {opt.label}
                             </p>
@@ -255,8 +272,8 @@ export default function BookingFlow() {
                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                             <input
                               type="date"
-                              value={startDate}
-                              onChange={(e) => setStartDate(e.target.value)}
+                              value={startDate || ''}
+                              onChange={(e) => setDates(e.target.value, endDate || '')}
                               className="input-luxury pl-10 [color-scheme:dark]"
                             />
                           </div>
@@ -267,8 +284,8 @@ export default function BookingFlow() {
                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                             <input
                               type="date"
-                              value={endDate}
-                              onChange={(e) => setEndDate(e.target.value)}
+                              value={endDate || ''}
+                              onChange={(e) => setDates(startDate || '', e.target.value)}
                               className="input-luxury pl-10 [color-scheme:dark]"
                             />
                           </div>
@@ -279,7 +296,7 @@ export default function BookingFlow() {
                 )}
 
                 {/* Step 2: Renter Information */}
-                {bookingStep === 2 && (
+                {currentStep === 2 && (
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
@@ -293,8 +310,8 @@ export default function BookingFlow() {
                       <label className="text-xs text-gray-400 mb-1.5 block">Nama Lengkap:</label>
                       <input
                         type="text"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        value={renterInfo.fullName}
+                        onChange={(e) => setRenterInfo({ fullName: e.target.value })}
                         className="input-luxury w-full"
                         placeholder="John Doe"
                       />
@@ -306,8 +323,8 @@ export default function BookingFlow() {
                         <label className="text-xs text-gray-400 mb-1.5 block">No. KTP:</label>
                         <input
                           type="text"
-                          value={formData.ktpNumber}
-                          onChange={(e) => setFormData({ ...formData, ktpNumber: e.target.value })}
+                          value={renterInfo.ktpNumber}
+                          onChange={(e) => setRenterInfo({ ktpNumber: e.target.value })}
                           className="input-luxury"
                           placeholder="317XXXXXXXXX"
                         />
@@ -316,8 +333,8 @@ export default function BookingFlow() {
                         <label className="text-xs text-gray-400 mb-1.5 block">No. SIM:</label>
                         <input
                           type="text"
-                          value={formData.simNumber}
-                          onChange={(e) => setFormData({ ...formData, simNumber: e.target.value })}
+                          value={renterInfo.simNumber}
+                          onChange={(e) => setRenterInfo({ simNumber: e.target.value })}
                           className="input-luxury"
                           placeholder="123XXXXXXXXX"
                         />
@@ -380,7 +397,7 @@ export default function BookingFlow() {
                 )}
 
                 {/* Step 3: Trip Plan */}
-                {bookingStep === 3 && (
+                {currentStep === 3 && (
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
@@ -396,8 +413,8 @@ export default function BookingFlow() {
                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                           <input
                             type="text"
-                            value={formData.originCity}
-                            onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
+                            value={tripPlan.origin}
+                            onChange={(e) => setTripPlan({ origin: e.target.value })}
                             className="input-luxury pl-10"
                             placeholder="Kota asal"
                           />
@@ -409,28 +426,18 @@ export default function BookingFlow() {
                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                           <input
                             type="text"
-                            value={formData.destinationCity}
-                            onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
+                            value={tripPlan.destination}
+                            onChange={(e) => setTripPlan({ destination: e.target.value })}
                             className="input-luxury pl-10"
                             placeholder="Kota tujuan"
                           />
                         </div>
                       </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">Estimasi Jarak (km)</label>
-                        <input
-                          type="number"
-                          value={formData.estimatedDistance}
-                          onChange={(e) => setFormData({ ...formData, estimatedDistance: e.target.value })}
-                          className="input-luxury"
-                          placeholder="Contoh: 500"
-                        />
-                      </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="text-xs text-gray-400 mb-1.5 block">Tujuan Perjalanan</label>
                         <select
-                          value={formData.tripPurpose}
-                          onChange={(e) => setFormData({ ...formData, tripPurpose: e.target.value })}
+                          value={tripPlan.purpose}
+                          onChange={(e) => setTripPlan({ purpose: e.target.value })}
                           className="input-luxury"
                         >
                           <option value="">Pilih tujuan</option>
@@ -457,7 +464,7 @@ export default function BookingFlow() {
                 )}
 
                 {/* Step 4: Guarantee & Payment */}
-                {bookingStep === 4 && (
+                {currentStep === 4 && (
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
@@ -469,26 +476,27 @@ export default function BookingFlow() {
                     {/* Guarantee Type */}
                     <div>
                       <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Pilih Jaminan</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
-                          { id: 'ktp', label: 'KTP Asli', icon: '🆔' },
-                          { id: 'bpkb', label: 'BPKB', icon: '📄' },
-                          { id: 'cash', label: 'Uang Tunai', icon: '💵' },
+                          { id: 'KTP', label: 'KTP Asli', icon: '🆔' },
+                          { id: 'BPKB', label: 'BPKB', icon: '📄' },
+                          { id: 'CASH', label: 'Uang Tunai', icon: '💵' },
+                          { id: 'GUARANTEE_LETTER', label: 'Guarantee Letter', icon: '📋' },
                         ].map((opt) => (
                           <motion.button
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setFormData({ ...formData, guaranteeType: opt.id })}
+                            onClick={() => setGuarantee(opt.id as any, guaranteeDocs)}
                             className={`p-4 rounded-xl text-center transition-all ${
-                              formData.guaranteeType === opt.id
+                              guaranteeType === opt.id
                                 ? 'neu-gold'
                                 : 'neu-soft'
                             }`}
                           >
                             <span className="text-2xl">{opt.icon}</span>
                             <p className={`text-sm font-medium mt-2 ${
-                              formData.guaranteeType === opt.id ? 'text-gold-300' : 'text-gray-300'
+                              guaranteeType === opt.id ? 'text-gold-300' : 'text-gray-300'
                             }`}>
                               {opt.label}
                             </p>
@@ -497,23 +505,10 @@ export default function BookingFlow() {
                       </div>
                     </div>
 
-                    {/* Upload Guarantee Document */}
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen Jaminan</label>
-                      <motion.div
-                        whileHover={{ scale: 1.01 }}
-                        className="p-6 rounded-xl neu-soft text-center cursor-pointer"
-                      >
-                        <Upload className="w-8 h-8 text-gold-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-300 font-medium">Upload Foto Jaminan</p>
-                        <p className="text-xs text-gray-500 mt-1">JPG, PNG max 10MB</p>
-                      </motion.div>
-                    </div>
-
                     {/* Payment Method */}
                     <div>
                       <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">
-                        Pembayaran DP (50%): {formatCurrency(pricing.dp)}
+                        Pembayaran DP (50%): {formatCurrency(dpAmount)}
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {[
@@ -525,16 +520,16 @@ export default function BookingFlow() {
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setFormData({ ...formData, paymentMethod: opt.id })}
+                            onClick={() => setPaymentMethod(opt.id)}
                             className={`p-4 rounded-xl text-center transition-all ${
-                              formData.paymentMethod === opt.id
+                              paymentMethod === opt.id
                                 ? 'neu-gold'
                                 : 'neu-soft'
                             }`}
                           >
                             <span className="text-2xl">{opt.icon}</span>
                             <p className={`text-sm font-medium mt-2 ${
-                              formData.paymentMethod === opt.id ? 'text-gold-300' : 'text-gray-300'
+                              paymentMethod === opt.id ? 'text-gold-300' : 'text-gray-300'
                             }`}>
                               {opt.label}
                             </p>
@@ -546,13 +541,13 @@ export default function BookingFlow() {
                 )}
 
                 {/* Step 5: Terms & Confirmation */}
-                {bookingStep === 5 && (
+                {currentStep === 5 && (
                   <div className="space-y-6">
                     {/* Terms and Conditions Component */}
                     <TermsAndConditions
                       terms={getTermsByUserType('individual')}
-                      agreed={formData.agreeTerms}
-                      onAgree={(agreed) => setFormData({ ...formData, agreeTerms: agreed })}
+                      agreed={agreeTerms}
+                      onAgree={setAgreeTerms}
                     />
 
                     {/* E-Signature */}
@@ -574,7 +569,7 @@ export default function BookingFlow() {
 
             {/* Navigation Buttons */}
             <div className="flex gap-3 mt-6">
-              {bookingStep > 1 && (
+              {currentStep > 1 && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -591,7 +586,7 @@ export default function BookingFlow() {
                 onClick={handleNext}
                 className="flex-1 btn-luxury py-3 flex items-center justify-center gap-2"
               >
-                {bookingStep === 5 ? 'Konfirmasi Booking' : 'Lanjut'}
+                {currentStep === 5 ? 'Konfirmasi Booking' : 'Lanjut'}
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </div>
@@ -615,7 +610,7 @@ export default function BookingFlow() {
                   <p className="text-white font-medium text-sm">{selectedVehicle.name}</p>
                   <p className="text-xs text-gray-500">{selectedVehicle.brand} • {selectedVehicle.year}</p>
                   <p className="text-xs text-gold-400 mt-1">
-                    {rentalType === 'with_driver' ? '🚗 Dengan Driver' : '🔑 Lepas Kunci'}
+                    {withDriver ? '🚗 Dengan Driver' : '🔑 Lepas Kunci'}
                   </p>
                 </div>
               </div>
@@ -624,11 +619,11 @@ export default function BookingFlow() {
               <div className="space-y-2 mb-4 pb-4 border-b border-white/5">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Durasi</span>
-                  <span className="text-white">{pricing.days} hari</span>
+                  <span className="text-white">{days} hari</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Tipe Sewa</span>
-                  <span className="text-white">{rentalDuration === 'daily' ? 'Harian' : rentalDuration === 'weekly' ? 'Mingguan' : 'Bulanan'}</span>
+                  <span className="text-white">{getDurationTypeLabel(durationType)}</span>
                 </div>
               </div>
 
@@ -636,22 +631,22 @@ export default function BookingFlow() {
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal</span>
-                  <span className="text-white">{formatCurrency(pricing.basePrice)}</span>
+                  <span className="text-white">{formatCurrency(totalPrice - (withDriver ? days * 150000 : 0))}</span>
                 </div>
-                {pricing.driverFee > 0 && (
+                {withDriver && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Jasa Driver</span>
-                    <span className="text-white">{formatCurrency(pricing.driverFee)}</span>
+                    <span className="text-white">{formatCurrency(days * 150000)}</span>
                   </div>
                 )}
                 <div className="divider-subtle my-2" />
                 <div className="flex justify-between">
                   <span className="text-gray-300 font-medium">Total</span>
-                  <span className="text-gold-gradient font-bold text-lg">{formatCurrency(pricing.total)}</span>
+                  <span className="text-gold-gradient font-bold text-lg">{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-xs pt-2 border-t border-white/5">
                   <span className="text-gray-400">DP (50%)</span>
-                  <span className="text-gold-400 font-medium">{formatCurrency(pricing.dp)}</span>
+                  <span className="text-gold-400 font-medium">{formatCurrency(dpAmount)}</span>
                 </div>
               </div>
 

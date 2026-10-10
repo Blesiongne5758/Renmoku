@@ -7,7 +7,7 @@ export default function VehicleShowcase() {
   const showcaseVehicles = vehicles.filter(v => v.has360View).slice(0, 4);
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-luxury-900 via-luxury-850 to-luxury-900" />
@@ -21,7 +21,7 @@ export default function VehicleShowcase() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12 sm:mb-16"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -33,10 +33,10 @@ export default function VehicleShowcase() {
             <span className="text-xs font-medium">VIRTUAL 360° SHOWCASE</span>
           </motion.div>
           
-          <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight-custom">
+          <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
             Jelajahi Kendaraan <span className="text-gold-gradient">Premium</span>
           </h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
             Lihat setiap detail kendaraan dari semua sudut dengan teknologi virtual 360°.
             Setiap kendaraan ditampilkan dengan background garasi mewah yang konsisten.
           </p>
@@ -88,7 +88,7 @@ export default function VehicleShowcase() {
                 {/* Vehicle Details */}
                 <div className="p-6">
                   {/* Specs */}
-                  <div className="grid grid-cols-4 gap-3 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                     {[
                       { label: 'Tipe', value: vehicle.type.toUpperCase() },
                       { label: 'Transmisi', value: vehicle.transmission === 'automatic' ? 'Otomatis' : 'Manual' },
@@ -103,8 +103,8 @@ export default function VehicleShowcase() {
                   </div>
 
                   {/* Features */}
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Fitur Unggulan</p>
+                  <div className="mb-6">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Fitur Unggulan</p>
                     <div className="flex flex-wrap gap-2">
                       {vehicle.features.slice(0, 4).map((feature, i) => (
                         <span
@@ -151,37 +151,37 @@ export default function VehicleShowcase() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16 glass-gold rounded-2xl p-6 border border-gold-500/10"
+          className="mt-12 sm:mt-16 glass-gold rounded-2xl p-6 sm:p-8 border border-gold-500/10"
         >
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
             <div className="w-12 h-12 rounded-xl neu-gold flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-gold-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div>
-              <h4 className="text-white font-semibold mb-2">Teknologi Virtual 360°</h4>
-              <p className="text-gray-400 text-sm leading-relaxed mb-3">
+            <div className="flex-1">
+              <h4 className="text-white font-semibold text-lg mb-3">Teknologi Virtual 360°</h4>
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed mb-4">
                 Setiap kendaraan yang diupload oleh pemilik rental akan secara otomatis menghasilkan visual 360° berputar 
                 dengan background garasi mewah yang konsisten. Cukup upload 4 foto dari sisi berbeda (depan, belakang, kiri, kanan), 
                 dan sistem akan membuat tampilan 3D interaktif yang dapat diputar oleh penyewa.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
-                  <span className="text-xs text-gray-400">Auto-rotate</span>
+                  <span className="text-xs sm:text-sm text-gray-400">Auto-rotate</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
-                  <span className="text-xs text-gray-400">Interactive drag</span>
+                  <span className="text-xs sm:text-sm text-gray-400">Interactive drag</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
-                  <span className="text-xs text-gray-400">Garasi mewah background</span>
+                  <span className="text-xs sm:text-sm text-gray-400">Garasi mewah background</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
-                  <span className="text-xs text-gray-400">Reflection effect</span>
+                  <span className="text-xs sm:text-sm text-gray-400">Reflection effect</span>
                 </div>
               </div>
             </div>

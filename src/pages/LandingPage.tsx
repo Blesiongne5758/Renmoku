@@ -1,10 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
 import {
-  MapPin,
-  Calendar,
-  Car,
-  Search,
   Star,
   ArrowRight,
   Sparkles,
@@ -15,33 +10,17 @@ import {
   Users,
   CreditCard,
   FileText,
-  CheckCircle2
+  Car
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import VehicleShowcase from '../components/VehicleShowcase';
+import HeroCinematic from '../components/vehicle/HeroCinematic';
 
 export default function LandingPage() {
   const { setCurrentPage, setAuthMode } = useAppStore();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 20,
-        y: (e.clientY / window.innerHeight - 0.5) * 20,
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const handleGetStarted = () => {
     setAuthMode('register');
-    setCurrentPage('auth');
-  };
-
-  const handleLogin = () => {
-    setAuthMode('login');
     setCurrentPage('auth');
   };
 
@@ -75,237 +54,23 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-dark-purple">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-luxury-950" />
-          
-          {/* Dynamic Particles */}
-          {Array.from({ length: 50 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-gold-400/30 rounded-full"
-              initial={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-              }}
-              animate={{
-                x: [
-                  Math.random() * window.innerWidth,
-                  Math.random() * window.innerWidth,
-                  Math.random() * window.innerWidth,
-                ],
-                y: [
-                  Math.random() * window.innerHeight,
-                  Math.random() * window.innerHeight,
-                  Math.random() * window.innerHeight,
-                ],
-                opacity: [0, 1, 0],
-              }}
-              transition={{
-                duration: 10 + Math.random() * 10,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-            />
-          ))}
-
-          {/* Glow Effects */}
-          <motion.div
-            className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-          <motion.div
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl"
-            animate={{
-              scale: [1.2, 1, 1.2],
-              opacity: [0.5, 0.3, 0.5],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Car Image with Reveal Animation */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 50 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: 0,
-              x: mousePosition.x * 0.5,
-            }}
-            transition={{ 
-              duration: 1.2,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="mb-12 relative"
-          >
-            <div className="relative inline-block">
-              <motion.img
-                src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1200&q=80"
-                alt="Luxury Car"
-                className="w-full max-w-3xl mx-auto rounded-2xl shadow-2xl"
-                style={{
-                  filter: 'drop-shadow(0 20px 60px rgba(212, 168, 83, 0.3))',
-                }}
-                animate={{
-                  y: [0, -10, 0],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-              
-              {/* Sparkles around car */}
-              {Array.from({ length: 8 }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-2 h-2 bg-gold-400 rounded-full"
-                  style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                  }}
-                  animate={{
-                    scale: [0, 1, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.3,
-                  }}
-                />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Tagline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="font-[Playfair_Display] text-5xl sm:text-6xl lg:text-7xl font-bold text-gold-gradient mb-6 tracking-tight-custom"
-          >
-            Rasakan Kemewahan
-            <br />
-            di Setiap Perjalanan
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10"
-          >
-            Platform rental mobil premium dengan koleksi kendaraan mewah terbaik.
-            Proses mudah, harga transparan, layanan profesional 24/7.
-          </motion.p>
-
-          {/* Search Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="max-w-4xl mx-auto"
-          >
-            <div className="glass rounded-2xl p-2 border border-gold-500/10">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                {/* Location */}
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
-                  <input
-                    type="text"
-                    placeholder="Lokasi"
-                    className="input-luxury pl-10 py-3 rounded-xl w-full"
-                  />
-                </div>
-
-                {/* Date */}
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
-                  <input
-                    type="date"
-                    className="input-luxury pl-10 py-3 rounded-xl w-full [color-scheme:dark]"
-                  />
-                </div>
-
-                {/* Car Type */}
-                <div className="relative">
-                  <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
-                  <select className="input-luxury pl-10 py-3 rounded-xl w-full appearance-none cursor-pointer">
-                    <option value="">Tipe Mobil</option>
-                    <option value="suv">SUV</option>
-                    <option value="sedan">Sedan</option>
-                    <option value="mpv">MPV</option>
-                    <option value="sport">Sport</option>
-                  </select>
-                </div>
-
-                {/* Search Button */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="btn-luxury py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Search className="w-5 h-5" />
-                  <span className="font-semibold">Cari</span>
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="flex flex-col items-center gap-2"
-          >
-            <span className="text-xs text-gray-500 tracking-widest uppercase">Scroll</span>
-            <div className="w-px h-8 bg-gradient-to-b from-gold-500/50 to-transparent" />
-          </motion.div>
-        </motion.div>
-      </section>
+      {/* Hero Section - Using HeroCinematic Component */}
+      <HeroCinematic />
 
       {/* Popular Cars Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mobil <span className="text-gold-gradient">Populer</span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
               Pilihan kendaraan terbaik yang paling banyak diminati pelanggan kami
             </p>
           </motion.div>
@@ -341,7 +106,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Car Info */}
-                <div className="p-5">
+                <div className="p-6">
                   <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-gold-300 transition-colors">
                     {car.name}
                   </h3>
@@ -376,19 +141,22 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Vehicle Showcase - 360° View */}
+      <VehicleShowcase />
+
       {/* Features Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-luxury">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-luxury">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mengapa <span className="text-gold-gradient">Renmoku</span>?
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
               Layanan premium dengan standar tertinggi untuk kenyamanan perjalanan Anda
             </p>
           </motion.div>
@@ -438,31 +206,139 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-xl neu-gold flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <feature.icon className="w-6 h-6 text-gold-400" />
                 </div>
-                <h3 className="text-white font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <h3 className="text-white font-semibold text-lg mb-3">{feature.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* For Owners Section */}
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full badge-gold mb-4">
+                <Crown className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">UNTUK PEMILIK RENTAL</span>
+              </div>
+              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
+                Kelola Armada <span className="text-gold-gradient">Lebih Mudah</span>
+              </h2>
+              <p className="text-gray-400 text-base sm:text-lg mb-6 leading-relaxed">
+                Daftarkan kendaraan Anda dan dapatkan penghasilan tambahan dengan platform lengkap.
+              </p>
+
+              <div className="space-y-3 mb-8">
+                {[
+                  'Dashboard lengkap untuk manajemen armada',
+                  'Kalender booking real-time',
+                  'Pengaturan DP fleksibel (20-50%)',
+                  'Laporan pendapatan detail',
+                  'Virtual 360° showcase',
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-gold-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-gold-400 text-xs">✓</span>
+                    </div>
+                    <span className="text-gray-300 text-sm leading-relaxed">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGetStarted}
+                className="btn-luxury flex items-center gap-2 group"
+              >
+                Daftar Sebagai Owner
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="relative"
+            >
+              <div className="card-luxury p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-white font-semibold">Dashboard Owner</h3>
+                  <span className="badge-gold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
+                    Live
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="neu-pressed rounded-xl p-4">
+                    <p className="text-xs text-gray-500 mb-1">Total Armada</p>
+                    <p className="text-white font-bold text-2xl">12</p>
+                  </div>
+                  <div className="neu-pressed rounded-xl p-4">
+                    <p className="text-xs text-gray-500 mb-1">Booking Aktif</p>
+                    <p className="text-gold-400 font-bold text-2xl">4</p>
+                  </div>
+                </div>
+
+                <div className="neu-pressed rounded-xl p-4 mb-4">
+                  <p className="text-xs text-gray-500 mb-2">Pendapatan Bulan Ini</p>
+                  <p className="text-gold-gradient font-bold text-3xl">Rp 45.5jt</p>
+                  <p className="text-xs text-emerald-400 mt-1">+15% dari bulan lalu</p>
+                </div>
+
+                <div className="neu-soft rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-3">Pengaturan DP</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 rounded-full bg-luxury-900 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: '30%' }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
+                      />
+                    </div>
+                    <span className="text-sm text-gold-400 font-semibold">30%</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="card-luxury p-10 sm:p-12 text-center relative overflow-hidden"
+            className="card-luxury p-8 sm:p-12 text-center relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-radial-gold opacity-40" />
             
             <div className="relative z-10">
-              <Sparkles className="w-10 h-10 text-gold-400 mx-auto mb-4" />
-              <h2 className="font-[Playfair_Display] text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight-custom">
+              <Sparkles className="w-12 h-12 text-gold-400 mx-auto mb-6" />
+              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
                 Siap Bergabung?
               </h2>
-              <p className="text-gray-500 max-w-md mx-auto mb-8">
+              <p className="text-gray-400 text-base sm:text-lg max-w-md mx-auto mb-8 leading-relaxed">
                 Bergabunglah dengan ribuan pengguna yang telah mempercayakan kebutuhan rental mobil mereka
               </p>
               <motion.button
