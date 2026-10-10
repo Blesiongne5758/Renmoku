@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import FleetPage from './pages/FleetPage';
 import BookingFlow from './components/BookingFlow';
 import DashboardPage from './pages/DashboardPage';
+import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 
 function App() {
   const { currentPage } = useAppStore();
@@ -22,6 +23,8 @@ function App() {
         return <BookingFlow />;
       case 'dashboard':
         return <DashboardPage />;
+      case 'database':
+        return <DatabaseSchemaPage />;
       default:
         return <HomePage />;
     }
