@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import OwnerDashboard from './components/OwnerDashboard';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
+import TermsPage from './pages/TermsPage';
 
 function App() {
   const { currentPage, currentUser } = useAppStore();
@@ -39,6 +40,8 @@ function App() {
         return <AuthPage />;
       case 'database':
         return <DatabaseSchemaPage />;
+      case 'terms':
+        return <TermsPage />;
       default:
         return <LandingPage />;
     }

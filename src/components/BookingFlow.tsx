@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { formatCurrency } from '../data/mockData';
+import { getTermsByUserType } from '../data/termsAndConditions';
+import TermsAndConditions from './TermsAndConditions';
 
 export default function BookingFlow() {
   const { selectedVehicle, setCurrentPage, setBookingStep, bookingStep } = useAppStore();
@@ -546,48 +548,12 @@ export default function BookingFlow() {
                 {/* Step 5: Terms & Confirmation */}
                 {bookingStep === 5 && (
                   <div className="space-y-6">
-                    <div>
-                      <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
-                        Syarat & Ketentuan
-                      </h2>
-                      <p className="text-gray-400 text-sm">Baca dan setujui syarat & ketentuan sebelum melanjutkan</p>
-                    </div>
-
-                    {/* Terms */}
-                    <div className="p-4 rounded-xl neu-pressed max-h-64 overflow-y-auto">
-                      <div className="space-y-3 text-sm text-gray-300">
-                        <p><strong className="text-gold-400">1. Ketentuan Umum</strong></p>
-                        <p className="text-xs text-gray-400">
-                          Penyewa wajib mengembalikan kendaraan dalam kondisi baik dan bersih. Keterlambatan pengembalian akan dikenakan denda 10% per hari.
-                        </p>
-                        <p><strong className="text-gold-400">2. Tanggung Jawab</strong></p>
-                        <p className="text-xs text-gray-400">
-                          Segala bentuk kerusakan yang terjadi selama masa sewa menjadi tanggung jawab penyewa, kecuali kerusakan yang disebabkan oleh faktor alam.
-                        </p>
-                        <p><strong className="text-gold-400">3. Pembayaran</strong></p>
-                        <p className="text-xs text-gray-400">
-                          DP 50% dibayar saat booking, pelunasan dilakukan saat pick-up kendaraan. Pembayaran dapat dilakukan melalui transfer bank, credit card, atau e-wallet.
-                        </p>
-                        <p><strong className="text-gold-400">4. Pembatalan</strong></p>
-                        <p className="text-xs text-gray-400">
-                          Pembatalan H-3 mendapat refund 100%, H-1 mendapat refund 50%, dan pada hari H tidak ada refund.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Agreement */}
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        id="agreeTerms"
-                        checked={formData.agreeTerms}
-                        onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
-                        className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 accent-gold-500"
-                      />
-                      <label htmlFor="agreeTerms" className="text-sm text-gray-300 cursor-pointer">
-                        Saya telah membaca dan menyetujui seluruh Syarat & Ketentuan yang berlaku
-                      </label>
-                    </div>
+                    {/* Terms and Conditions Component */}
+                    <TermsAndConditions
+                      terms={getTermsByUserType('individual')}
+                      agreed={formData.agreeTerms}
+                      onAgree={(agreed) => setFormData({ ...formData, agreeTerms: agreed })}
+                    />
 
                     {/* E-Signature */}
                     <div>

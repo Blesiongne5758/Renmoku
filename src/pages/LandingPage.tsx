@@ -490,9 +490,17 @@ export default function LandingPage() {
                 RENMOKU
               </span>
             </div>
-            <p className="text-gray-600 text-sm">
-              © 2025 Renmoku. Premium Car Rental Platform.
-            </p>
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setCurrentPage('terms')}
+                className="text-sm text-gray-500 hover:text-gold-400 transition-colors"
+              >
+                Syarat & Ketentuan
+              </button>
+              <p className="text-gray-600 text-sm">
+                © 2025 Renmoku
+              </p>
+            </div>
           </div>
         </div>
       </footer>
