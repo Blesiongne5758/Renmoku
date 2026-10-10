@@ -9,7 +9,7 @@ import VehicleDetailPage from './pages/VehicleDetailPage';
 import BookingFlow from './components/BookingFlow';
 import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
-import OwnerDashboard from './components/OwnerDashboard';
+import OwnerDashboardNew from './components/OwnerDashboardNew';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 import TermsPage from './pages/TermsPage';
@@ -32,10 +32,9 @@ function App() {
         return <SuccessPage />;
       case 'dashboard':
         // Check if user is owner
-        if (currentUser?.role === 'owner') {
-          return <OwnerDashboard />;
-        }
-        return <DashboardPage />;
+if (currentUser?.role === 'owner') {
+        return <OwnerDashboardNew />;
+      }        return <DashboardPage />;
       case 'auth':
         return <AuthPage />;
       case 'database':
