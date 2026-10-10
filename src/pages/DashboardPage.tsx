@@ -4,15 +4,20 @@ import {
   LayoutDashboard, Car, Calendar, CreditCard, FileText,
   TrendingUp, Clock, CheckCircle2, AlertCircle, ChevronRight,
   DollarSign, Users, BarChart3, Settings, LogOut, Shield,
-  Percent, Sliders, Save, Info
+  Percent, Sliders, Save, Info, RotateCw, Camera, Eye
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { mockBookings, formatCurrency } from '../data/mockData';
 
-type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'settings';
+import { vehicles as mockVehicles } from '../data/mockData';
+import VehicleUpload360 from '../components/VehicleUpload360';
+import Vehicle360Viewer from '../components/Vehicle360Viewer';
+
+type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [upload360Vehicle, setUpload360Vehicle] = useState<any>(null);
   const { currentUser, setCurrentUser, logout, ownerSettings, setOwnerSettings, setCurrentPage } = useAppStore();
 
   // If not logged in, redirect to auth
@@ -47,6 +52,7 @@ export default function DashboardPage() {
         { id: 'overview' as DashboardTab, label: 'Overview', icon: LayoutDashboard },
         { id: 'bookings' as DashboardTab, label: 'Booking', icon: Calendar },
         { id: 'fleet' as DashboardTab, label: 'Armada', icon: Car },
+        { id: 'upload360' as DashboardTab, label: 'Upload 360°', icon: RotateCw },
         { id: 'revenue' as DashboardTab, label: 'Pendapatan', icon: DollarSign },
         { id: 'settings' as DashboardTab, label: 'Pengaturan', icon: Settings },
       ]
@@ -207,6 +213,138 @@ export default function DashboardPage() {
                          booking.bookingStatus === 'completed' ? 'Selesai' : 'Pending'}
                       </span>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Upload 360° Tab (Owner only) */}
+        {activeTab === 'upload360' && isOwner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            {/* Header Info */}
+            <div className="glass rounded-2xl p-6 border border-gold-500/10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center">
+                  <RotateCw className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-[Playfair_Display] text-xl font-bold text-white">
+                    Virtual 360° Showcase
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Upload 4 foto dari sisi berbeda untuk membuat tampilan 3D berputar otomatis
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                  <p className="text-2xl font-bold text-gold-gradient">4</p>
+                  <p className="text-xs text-gray-500 mt-1">Foto Sudut Diperlukan</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                  <p className="text-2xl font-bold text-emerald-400">Auto</p>
+                  <p className="text-xs text-gray-500 mt-1">Rotasi Otomatis</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                  <p className="text-2xl font-bold text-purple-400">360°</p>
+                  <p className="text-xs text-gray-500 mt-1">Virtual View</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Vehicle Grid for Upload */}
+            <div className="glass rounded-2xl p-6 border border-white/5">
+              <h4 className="font-[Playfair_Display] text-lg font-semibold text-white mb-4">
+                Armada Anda
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mockVehicles.slice(0, 6).map((vehicle, i) => {
+                  const has360 = vehicle.has360View || (vehicle.sides?.front && vehicle.sides?.back && vehicle.sides?.left && vehicle.sides?.right);
+                  return (
+                    <motion.div
+                      key={vehicle.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="rounded-xl overflow-hidden border border-white/5 hover:border-gold-500/20 transition-all"
+                    >
+                      {/* 360 Preview or Image */}
+                      <div className="relative aspect-video">
+                        {has360 ? (
+                          <Vehicle360Viewer
+                            vehicle={vehicle}
+                            autoRotate={true}
+                            showControls={false}
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <img src={vehicle.image} alt={vehicle.name} className="w-full h-full object-cover" />
+                        )}
+                        
+                        {/* Status Badge */}
+                        <div className="absolute top-2 right-2">
+                          {has360 ? (
+                            <span className="px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium backdrop-blur-sm flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              360° Aktif
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-xs font-medium backdrop-blur-sm">
+                              Perlu Upload
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Info & Action */}
+                      <div className="p-3 bg-luxury-800/50">
+                        <h5 className="text-white font-medium text-sm mb-1">{vehicle.name}</h5>
+                        <p className="text-xs text-gray-500 mb-3">{vehicle.brand} • {vehicle.year}</p>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setUpload360Vehicle(vehicle)}
+                          className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
+                            has360
+                              ? 'bg-gold-500/10 border border-gold-500/20 text-gold-300 hover:bg-gold-500/20'
+                              : 'btn-luxury'
+                          }`}
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          {has360 ? 'Edit Foto 360°' : 'Upload 4 Foto'}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* How it Works */}
+            <div className="glass rounded-2xl p-6 border border-gold-500/10">
+              <h4 className="font-[Playfair_Display] text-lg font-semibold text-white mb-4">
+                Cara Kerja Virtual 360°
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                {[
+                  { step: '1', title: 'Upload 4 Foto', desc: 'Depan, Belakang, Kiri, Kanan' },
+                  { step: '2', title: 'Proses Otomatis', desc: 'Sistem membuat tampilan 3D' },
+                  { step: '3', title: 'Background Garasi', desc: 'Tampilan mewah konsisten' },
+                  { step: '4', title: 'Tampil di Listing', desc: 'Menjadi gambar utama' },
+                ].map((item, i) => (
+                  <div key={i} className="text-center">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gold-500/20 to-gold-600/5 border border-gold-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-gold-400 font-bold">{item.step}</span>
+                    </div>
+                    <h5 className="text-white font-medium text-sm mb-1">{item.title}</h5>
+                    <p className="text-xs text-gray-500">{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -584,6 +722,19 @@ export default function DashboardPage() {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {/* Upload 360 Modal */}
+        {upload360Vehicle && (
+          <VehicleUpload360
+            vehicle={upload360Vehicle}
+            onClose={() => setUpload360Vehicle(null)}
+            onSave={(sides) => {
+              // In real app, this would save to backend
+              console.log('Saving 360° views:', sides);
+              setUpload360Vehicle(null);
+            }}
+          />
         )}
       </div>
     </div>

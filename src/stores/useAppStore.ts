@@ -26,6 +26,14 @@ export interface Vehicle {
   location: string;
   rating: number;
   reviews: number;
+  // 4 sisi foto untuk 360° virtual spin
+  sides?: {
+    front?: string;
+    back?: string;
+    left?: string;
+    right?: string;
+  };
+  has360View?: boolean; // otomatis true jika 4 sisi terupload
 }
 
 export interface Booking {

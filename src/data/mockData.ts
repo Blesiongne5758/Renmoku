@@ -25,6 +25,14 @@ export const vehicles: Vehicle[] = [
     location: 'Jakarta',
     rating: 4.9,
     reviews: 128,
+    // 4 sisi foto untuk 360° virtual spin
+    sides: {
+      front: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&q=80',
+      back: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&q=80',
+      left: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80',
+      right: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80',
+    },
+    has360View: true,
   },
   {
     id: 'v2',
@@ -48,6 +56,13 @@ export const vehicles: Vehicle[] = [
     location: 'Jakarta',
     rating: 5.0,
     reviews: 56,
+    sides: {
+      front: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80',
+      back: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
+      left: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80',
+      right: 'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800&q=80',
+    },
+    has360View: true,
   },
   {
     id: 'v3',

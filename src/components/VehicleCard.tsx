@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Star, Fuel, Users, Settings, Eye } from 'lucide-react';
 import { Vehicle, useAppStore } from '../stores/useAppStore';
 import { formatCurrency } from '../data/mockData';
+import Vehicle360Viewer from './Vehicle360Viewer';
 
 interface Props {
   vehicle: Vehicle;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export default function VehicleCard({ vehicle, index, onView360, onBook }: Props) {
+  const has360 = vehicle.has360View || (vehicle.sides?.front && vehicle.sides?.back && vehicle.sides?.left && vehicle.sides?.right);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -19,20 +22,31 @@ export default function VehicleCard({ vehicle, index, onView360, onBook }: Props
       whileHover={{ y: -8, transition: { duration: 0.3 } }}
       className="group relative glass rounded-2xl overflow-hidden border border-white/5 hover:border-gold-500/20 transition-all duration-500"
     >
-      {/* Image */}
-      <div className="relative h-48 sm:h-56 overflow-hidden">
-        <motion.img
-          src={vehicle.image}
-          alt={vehicle.name}
-          className="w-full h-full object-cover"
-          whileHover={{ scale: 1.1 }}
-          transition={{ duration: 0.6 }}
-        />
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-luxury-900 via-transparent to-transparent" />
-        
+      {/* Image / 360 Viewer */}
+      <div className="relative h-56 sm:h-64 overflow-hidden">
+        {has360 ? (
+          <Vehicle360Viewer
+            vehicle={vehicle}
+            autoRotate={true}
+            showControls={true}
+            className="w-full h-full"
+          />
+        ) : (
+          <>
+            <motion.img
+              src={vehicle.image}
+              alt={vehicle.name}
+              className="w-full h-full object-cover"
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.6 }}
+            />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-luxury-900 via-transparent to-transparent" />
+          </>
+        )}
+
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute top-3 left-3 flex gap-2 z-10">
           <span className="px-2 py-1 rounded-md bg-gold-500/20 border border-gold-500/30 text-gold-300 text-xs font-medium backdrop-blur-sm">
             {vehicle.type.toUpperCase()}
           </span>
@@ -41,26 +55,34 @@ export default function VehicleCard({ vehicle, index, onView360, onBook }: Props
               AUTO
             </span>
           )}
+          {has360 && (
+            <span className="px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-medium backdrop-blur-sm flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+              360°
+            </span>
+          )}
         </div>
 
         {/* Rating */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md glass">
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md glass z-10">
           <Star className="w-3 h-3 text-gold-400 fill-gold-400" />
           <span className="text-xs text-white font-medium">{vehicle.rating}</span>
         </div>
 
         {/* 360 view button */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          whileHover={{ scale: 1.1 }}
-          className="absolute bottom-3 right-3 p-2 rounded-full bg-gold-500/20 border border-gold-500/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onView360(vehicle);
-          }}
-        >
-          <Eye className="w-4 h-4 text-gold-300" />
-        </motion.button>
+        {has360 && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            whileHover={{ scale: 1.1 }}
+            className="absolute bottom-3 right-3 p-2 rounded-full bg-gold-500/20 border border-gold-500/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onView360(vehicle);
+            }}
+          >
+            <Eye className="w-4 h-4 text-gold-300" />
+          </motion.button>
+        )}
       </div>
 
       {/* Content */}
