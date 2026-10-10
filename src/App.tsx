@@ -18,6 +18,7 @@ import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 import TermsPage from './pages/TermsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import RoleGuard from './components/RoleGuard';
 import { canAccessRoute } from './lib/auth';
 
 function App() {
@@ -44,14 +45,26 @@ function App() {
       case 'success':
         return <SuccessPage />;
       case 'dashboard':
-        // Check user role for appropriate dashboard
-        if (currentUser?.role === 'owner') {
-          return <OwnerDashboardNew />;
-        }
+        // Use RoleGuard for role-based access
         if (currentUser?.role === 'admin') {
-          return <AdminDashboard />;
+          return (
+            <RoleGuard allowedRoles={['admin']}>
+              <AdminDashboard />
+            </RoleGuard>
+          );
         }
-        return <DashboardPage />;
+        if (currentUser?.role === 'owner') {
+          return (
+            <RoleGuard allowedRoles={['owner', 'admin']}>
+              <OwnerDashboardNew />
+            </RoleGuard>
+          );
+        }
+        return (
+          <RoleGuard allowedRoles={['individual', 'corporate', 'owner', 'admin']}>
+            <DashboardPage />
+          </RoleGuard>
+        );
       case 'auth':
         return <AuthPage />;
       case 'database':
