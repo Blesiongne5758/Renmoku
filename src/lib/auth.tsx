@@ -134,6 +134,79 @@ export function requireOwner(redirectPath = '/home') {
 }
 
 // ============================================================================
+// ROUTE PROTECTION (Equivalent to Next.js Middleware)
+// ============================================================================
+
+/**
+ * Route protection configuration
+ * Defines which routes require which roles
+ */
+export const ROUTE_PROTECTION = {
+  '/admin': ['ADMIN'],
+  '/dashboard/owner': ['OWNER', 'ADMIN'],
+  '/dashboard/renter': ['RENTER', 'ADMIN'],
+  '/dashboard': ['RENTER', 'OWNER', 'ADMIN'],
+} as const;
+
+/**
+ * Check if user can access a specific route
+ */
+export function canAccessRoute(path: string): boolean {
+  const userRole = getUserRole();
+  if (!userRole) return false;
+
+  // Check each route protection rule
+  for (const [route, allowedRoles] of Object.entries(ROUTE_PROTECTION)) {
+    if (path.startsWith(route)) {
+      return (allowedRoles as readonly UserRole[]).includes(userRole);
+    }
+  }
+
+  // If no specific rule matches, allow access (public route)
+  return true;
+}
+
+/**
+ * Protect route - redirect to unauthorized if user doesn't have access
+ */
+export function protectRoute(path: string): boolean {
+  const { setCurrentPage } = useAppStore.getState();
+  
+  if (!canAccessRoute(path)) {
+    setCurrentPage('unauthorized');
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Middleware-style route protection for React components
+ */
+export function withRouteProtection<P extends object>(
+  Component: React.ComponentType<P>,
+  routePath: string
+) {
+  return function ProtectedRoute(props: P) {
+    const { isAuthenticated, currentUser, setCurrentPage } = useAppStore();
+    
+    // Check authentication
+    if (!isAuthenticated || !currentUser) {
+      setTimeout(() => setCurrentPage('auth'), 0);
+      return null;
+    }
+    
+    // Check route access
+    if (!canAccessRoute(routePath)) {
+      setTimeout(() => setCurrentPage('unauthorized'), 0);
+      return null;
+    }
+    
+    return <Component {...props} />;
+  };
+}
+
+// ============================================================================
 // PROTECTED ROUTE WRAPPER
 // ============================================================================
 

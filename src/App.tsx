@@ -17,12 +17,21 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 import TermsPage from './pages/TermsPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
+import { canAccessRoute } from './lib/auth';
 
 function App() {
   const { currentPage, currentUser } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
 
   const renderPage = () => {
+    // Route protection - check access before rendering
+    if (currentPage !== 'auth' && currentPage !== 'unauthorized' && currentPage !== 'home' && currentPage !== 'fleet' && currentPage !== 'terms' && currentPage !== 'database') {
+      if (!canAccessRoute(`/${currentPage}`)) {
+        return <UnauthorizedPage />;
+      }
+    }
+
     switch (currentPage) {
       case 'home':
         return <LandingPage />;
@@ -49,6 +58,8 @@ function App() {
         return <DatabaseSchemaPage />;
       case 'terms':
         return <TermsPage />;
+      case 'unauthorized':
+        return <UnauthorizedPage />;
       default:
         return <LandingPage />;
     }
