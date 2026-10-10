@@ -102,10 +102,10 @@ export default function VehicleCard({ vehicle, index, onView360, onBook }: Props
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-6">
         {/* Title */}
         <div className="mb-4">
-          <h3 className="font-[Playfair_Display] text-lg font-bold text-white group-hover:text-gold-300 transition-colors mb-1">
+          <h3 className="font-[Playfair_Display] text-lg font-bold text-white group-hover:text-gold-300 transition-colors mb-2">
             {vehicle.name}
           </h3>
           <p className="text-xs text-gray-500">

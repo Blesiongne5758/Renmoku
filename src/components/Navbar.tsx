@@ -10,7 +10,6 @@ export default function Navbar() {
     { id: 'home', label: 'Beranda' },
     { id: 'fleet', label: 'Armada' },
     { id: 'dashboard', label: 'Dashboard', requireAuth: true },
-    { id: 'database', label: 'Database' },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.requireAuth || isAuthenticated);
