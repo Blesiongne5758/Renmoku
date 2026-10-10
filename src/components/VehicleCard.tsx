@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Star, Fuel, Users, Settings, Eye } from 'lucide-react';
-import { Vehicle } from '../stores/useAppStore';
+import { Vehicle, useAppStore } from '../stores/useAppStore';
 import { formatCurrency } from '../data/mockData';
 import Vehicle360Viewer from './Vehicle360Viewer';
 
@@ -13,6 +13,12 @@ interface Props {
 
 export default function VehicleCard({ vehicle, index, onView360, onBook }: Props) {
   const has360 = vehicle.has360View || (vehicle.sides?.front && vehicle.sides?.back && vehicle.sides?.left && vehicle.sides?.right);
+  const { setCurrentPage, setSelectedVehicle } = useAppStore();
+
+  const handleCardClick = () => {
+    setSelectedVehicle(vehicle);
+    setCurrentPage('vehicle-detail');
+  };
 
   return (
     <motion.div
@@ -20,7 +26,8 @@ export default function VehicleCard({ vehicle, index, onView360, onBook }: Props
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -8 }}
-      className="group relative card-luxury"
+      onClick={handleCardClick}
+      className="group relative card-luxury cursor-pointer"
     >
       {/* Image / 360 Viewer */}
       <div className="relative h-56 sm:h-60 overflow-hidden rounded-t-[20px]">
@@ -147,7 +154,10 @@ export default function VehicleCard({ vehicle, index, onView360, onBook }: Props
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => onBook(vehicle)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBook(vehicle);
+            }}
             className="btn-luxury px-5 py-2.5 text-sm"
           >
             Sewa

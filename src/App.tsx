@@ -5,7 +5,9 @@ import Navbar from './components/Navbar';
 import LoadingScreen from './components/LoadingScreen';
 import LandingPage from './pages/LandingPage';
 import FleetPage from './pages/FleetPage';
+import VehicleDetailPage from './pages/VehicleDetailPage';
 import BookingFlow from './components/BookingFlow';
+import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
@@ -20,8 +22,12 @@ function App() {
         return <LandingPage />;
       case 'fleet':
         return <FleetPage />;
+      case 'vehicle-detail':
+        return <VehicleDetailPage />;
       case 'booking':
         return <BookingFlow />;
+      case 'success':
+        return <SuccessPage />;
       case 'dashboard':
         return <DashboardPage />;
       case 'auth':
