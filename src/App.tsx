@@ -12,13 +12,12 @@ import VehicleDetailPage from './pages/VehicleDetailPage';
 import BookingFlow from './components/BookingFlow';
 import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
-import OwnerDashboardNew from './components/OwnerDashboardNew';
-import AdminDashboard from './components/admin/AdminDashboard';
+import OwnerDashboardPage from './pages/OwnerDashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 import TermsPage from './pages/TermsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
-import RoleGuard from './components/RoleGuard';
 import { canAccessRoute } from './lib/auth';
 
 function App() {
@@ -45,26 +44,15 @@ function App() {
       case 'success':
         return <SuccessPage />;
       case 'dashboard':
-        // Use RoleGuard for role-based access
+        // Route to appropriate dashboard based on user role
+        // Each dashboard page has its own RoleGuard
         if (currentUser?.role === 'admin') {
-          return (
-            <RoleGuard allowedRoles={['admin']}>
-              <AdminDashboard />
-            </RoleGuard>
-          );
+          return <AdminDashboardPage />;
         }
         if (currentUser?.role === 'owner') {
-          return (
-            <RoleGuard allowedRoles={['owner', 'admin']}>
-              <OwnerDashboardNew />
-            </RoleGuard>
-          );
+          return <OwnerDashboardPage />;
         }
-        return (
-          <RoleGuard allowedRoles={['individual', 'corporate', 'owner', 'admin']}>
-            <DashboardPage />
-          </RoleGuard>
-        );
+        return <DashboardPage />;
       case 'auth':
         return <AuthPage />;
       case 'database':
