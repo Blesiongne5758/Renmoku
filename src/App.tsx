@@ -3,30 +3,47 @@ import { useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
 import Navbar from './components/Navbar';
 import LoadingScreen from './components/LoadingScreen';
-import HomePage from './pages/HomePage';
+import LandingPage from './pages/LandingPage';
 import FleetPage from './pages/FleetPage';
+import VehicleDetailPage from './pages/VehicleDetailPage';
 import BookingFlow from './components/BookingFlow';
+import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
+import OwnerDashboard from './components/OwnerDashboard';
+import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
+import TermsPage from './pages/TermsPage';
 
 function App() {
-  const { currentPage } = useAppStore();
+  const { currentPage, currentUser } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage />;
+        return <LandingPage />;
       case 'fleet':
         return <FleetPage />;
+      case 'vehicle-detail':
+        return <VehicleDetailPage />;
       case 'booking':
         return <BookingFlow />;
+      case 'success':
+        return <SuccessPage />;
       case 'dashboard':
+        // Check if user is owner
+        if (currentUser?.role === 'owner') {
+          return <OwnerDashboard />;
+        }
         return <DashboardPage />;
+      case 'auth':
+        return <AuthPage />;
       case 'database':
         return <DatabaseSchemaPage />;
+      case 'terms':
+        return <TermsPage />;
       default:
-        return <HomePage />;
+        return <LandingPage />;
     }
   };
 

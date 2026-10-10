@@ -1,73 +1,105 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Car, User, FileText, CreditCard, CheckCircle2,
-  ChevronRight, ChevronLeft, Upload, Shield, Clock, MapPin
+import { useState } from 'react';
+import { 
+  Car, Calendar, Users, MapPin, CreditCard, FileText, 
+  CheckCircle, ArrowRight, ArrowLeft, Upload, Shield,
+  AlertCircle, Clock, PenTool
 } from 'lucide-react';
-import { useAppStore, RentalType, UserRole } from '../stores/useAppStore';
-import { formatCurrency, calculatePrice, getDurationDiscount } from '../data/mockData';
-
-const steps = [
-  { id: 0, label: 'Kendaraan', icon: Car },
-  { id: 1, label: 'Data Penyewa', icon: User },
-  { id: 2, label: 'Perjalanan', icon: MapPin },
-  { id: 3, label: 'Dokumen', icon: FileText },
-  { id: 4, label: 'Pembayaran', icon: CreditCard },
-  { id: 5, label: 'Konfirmasi', icon: CheckCircle2 },
-];
+import { useAppStore } from '../stores/useAppStore';
+import { formatCurrency } from '../data/mockData';
+import { getTermsByUserType } from '../data/termsAndConditions';
+import TermsAndConditions from './TermsAndConditions';
 
 export default function BookingFlow() {
-  const { selectedVehicle, bookingStep, setBookingStep, setCurrentPage } = useAppStore();
-  const [renterType, setRenterType] = useState<UserRole>('individual');
-  const [rentalType, setRentalType] = useState<RentalType>('with_driver');
+  const { selectedVehicle, setCurrentPage, setBookingStep, bookingStep } = useAppStore();
+  const [rentalDuration, setRentalDuration] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [rentalType, setRentalType] = useState<'with_driver' | 'self_drive'>('with_driver');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    fullName: '',
+    ktpNumber: '',
+    simNumber: '',
+    address: '',
     phone: '',
-    ktp: '',
-    sim: '',
-    startDate: '',
-    endDate: '',
-    pickupLocation: '',
-    dropoffLocation: '',
-    companyName: '',
-    nib: '',
-    npwp: '',
-    pic: '',
+    email: '',
+    originCity: '',
+    destinationCity: '',
+    estimatedDistance: '',
+    tripPurpose: '',
+    guaranteeType: '',
+    paymentMethod: '',
+    agreeTerms: false,
   });
 
-  const vehicle = selectedVehicle;
+  // Upload status tracking
+  const [uploadStatus, setUploadStatus] = useState({
+    ktp: false,
+    sim: false,
+    kk: false,
+  });
 
-  if (!vehicle) {
+  if (!selectedVehicle) {
     return (
-      <div className="min-h-screen pt-24 flex items-center justify-center">
+      <div className="min-h-screen pt-20 flex items-center justify-center">
         <div className="text-center">
-          <Car className="w-16 h-16 text-gold-400 mx-auto mb-4" />
-          <h2 className="font-[Playfair_Display] text-2xl text-white mb-2">Pilih Kendaraan</h2>
-          <p className="text-gray-400 mb-6">Silakan pilih kendaraan dari halaman armada terlebih dahulu</p>
+          <AlertCircle className="w-16 h-16 text-gold-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Tidak Ada Kendaraan Dipilih</h2>
+          <p className="text-gray-400 mb-6">Silakan pilih kendaraan terlebih dahulu</p>
           <button
             onClick={() => setCurrentPage('fleet')}
             className="btn-luxury"
           >
-            Lihat Armada
+            Pilih Kendaraan
           </button>
         </div>
       </div>
     );
   }
 
-  const duration = formData.startDate && formData.endDate
-    ? Math.ceil((new Date(formData.endDate).getTime() - new Date(formData.startDate).getTime()) / (1000 * 60 * 60 * 24))
-    : 1;
+  const steps = [
+    { id: 1, title: 'Durasi & Opsi', icon: Calendar },
+    { id: 2, title: 'Data Penyewa', icon: Users },
+    { id: 3, title: 'Perjalanan', icon: MapPin },
+    { id: 4, title: 'Jaminan & Bayar', icon: CreditCard },
+    { id: 5, title: 'Konfirmasi', icon: CheckCircle },
+  ];
 
-  const basePrice = calculatePrice(vehicle, duration);
-  const discount = getDurationDiscount(duration);
-  const totalPrice = basePrice * (1 - discount / 100);
-  const dpAmount = totalPrice * 0.3;
-  const remainingAmount = totalPrice - dpAmount;
+  const calculateTotal = () => {
+    const days = startDate && endDate 
+      ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+      : 1;
+    
+    let basePrice = 0;
+    if (rentalDuration === 'daily') basePrice = days * selectedVehicle.pricePerDay;
+    else if (rentalDuration === 'weekly') basePrice = Math.ceil(days / 7) * selectedVehicle.pricePerWeek;
+    else basePrice = Math.ceil(days / 30) * selectedVehicle.pricePerMonth;
+
+    const driverFee = rentalType === 'with_driver' ? days * 300000 : 0;
+    const total = basePrice + driverFee;
+    const dp = total * 0.5;
+
+    return { days, basePrice, driverFee, total, dp };
+  };
+
+  const pricing = calculateTotal();
+
+  const handleNext = () => {
+    if (bookingStep < 5) {
+      setBookingStep(bookingStep + 1);
+    } else {
+      setCurrentPage('success');
+    }
+  };
+
+  const handleBack = () => {
+    if (bookingStep > 1) {
+      setBookingStep(bookingStep - 1);
+    }
+  };
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
+    <div className="min-h-screen pt-20 pb-16 bg-gradient-luxury">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Progress Steps */}
         <motion.div
@@ -75,33 +107,52 @@ export default function BookingFlow() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between overflow-x-auto pb-2">
-            {steps.map((step, i) => (
-              <div key={step.id} className="flex items-center">
-                <button
-                  onClick={() => setBookingStep(step.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    bookingStep === step.id
-                      ? 'bg-gold-500/20 border border-gold-500/30'
-                      : bookingStep > step.id
-                      ? 'bg-emerald-500/10 border border-emerald-500/20'
-                      : 'bg-white/[0.02] border border-white/5'
-                  }`}
-                >
-                  <step.icon className={`w-4 h-4 ${
-                    bookingStep === step.id ? 'text-gold-400' :
-                    bookingStep > step.id ? 'text-emerald-400' : 'text-gray-500'
-                  }`} />
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm text-gold-400 font-medium">Step {bookingStep}/5</span>
+            </div>
+            <div className="h-2 rounded-full neu-pressed overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(bookingStep / 5) * 100}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
+              />
+            </div>
+          </div>
+
+          {/* Step Indicators */}
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                      bookingStep >= step.id
+                        ? 'bg-gradient-to-br from-gold-500 to-gold-600 text-luxury-900'
+                        : 'neu-soft text-gray-500'
+                    }`}
+                  >
+                    {bookingStep > step.id ? (
+                      <CheckCircle className="w-6 h-6" />
+                    ) : (
+                      <step.icon className="w-5 h-5" />
+                    )}
+                  </motion.div>
                   <span className={`text-xs font-medium hidden sm:block ${
-                    bookingStep === step.id ? 'text-gold-300' :
-                    bookingStep > step.id ? 'text-emerald-300' : 'text-gray-500'
+                    bookingStep >= step.id ? 'text-gold-400' : 'text-gray-500'
                   }`}>
-                    {step.label}
+                    {step.title}
                   </span>
-                </button>
-                {i < steps.length - 1 && (
-                  <div className={`w-6 sm:w-12 h-px mx-1 ${
-                    bookingStep > step.id ? 'bg-emerald-500/30' : 'bg-white/10'
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`flex-1 h-0.5 mx-2 ${
+                    bookingStep > step.id ? 'bg-gold-500' : 'bg-white/5'
                   }`} />
                 )}
               </div>
@@ -109,8 +160,9 @@ export default function BookingFlow() {
           </div>
         </motion.div>
 
+        {/* Step Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main form area */}
+          {/* Main Content */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               <motion.div
@@ -119,391 +171,430 @@ export default function BookingFlow() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="glass rounded-2xl p-6 border border-gold-500/10"
+                className="card-luxury p-6"
               >
-                {/* Step 0: Vehicle Selection */}
-                {bookingStep === 0 && (
-                  <div>
-                    <h3 className="font-[Playfair_Display] text-xl font-bold text-white mb-6">
-                      Konfirmasi Kendaraan
-                    </h3>
-                    
-                    {/* Selected vehicle preview */}
-                    <div className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
-                      <img src={vehicle.image} alt={vehicle.name} className="w-24 h-24 rounded-lg object-cover" />
-                      <div>
-                        <h4 className="text-white font-semibold">{vehicle.name}</h4>
-                        <p className="text-sm text-gray-400">{vehicle.brand} • {vehicle.year}</p>
-                        <p className="text-gold-400 font-bold mt-1">{formatCurrency(vehicle.pricePerDay)}/hari</p>
+                {/* Step 1: Duration & Options */}
+                {bookingStep === 1 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
+                        Pilih Durasi & Opsi Sewa
+                      </h2>
+                      <p className="text-gray-400 text-sm">Tentukan bagaimana Anda ingin menyewa kendaraan</p>
+                    </div>
+
+                    {/* Duration */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Durasi Sewa</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: 'daily', label: 'Harian', desc: '1-6 hari' },
+                          { id: 'weekly', label: 'Mingguan', desc: '7-29 hari' },
+                          { id: 'monthly', label: 'Bulanan', desc: '30+ hari' },
+                        ].map((opt) => (
+                          <motion.button
+                            key={opt.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setRentalDuration(opt.id as any)}
+                            className={`p-4 rounded-xl text-left transition-all ${
+                              rentalDuration === opt.id
+                                ? 'neu-gold'
+                                : 'neu-soft'
+                            }`}
+                          >
+                            <p className={`font-medium ${
+                              rentalDuration === opt.id ? 'text-gold-300' : 'text-gray-300'
+                            }`}>
+                              {opt.label}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">{opt.desc}</p>
+                          </motion.button>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Rental type */}
-                    <div className="mb-6">
-                      <label className="text-sm text-gray-300 mb-3 block">Opsi Sewa</label>
+                    {/* Rental Type */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Opsi Sewa</label>
                       <div className="grid grid-cols-2 gap-3">
                         {[
-                          { value: 'with_driver' as RentalType, label: 'Dengan Driver', icon: '🚗', desc: 'Termasuk driver profesional' },
-                          { value: 'self_drive' as RentalType, label: 'Lepas Kunci', icon: '🔑', desc: 'Self drive, bebas kemana saja' },
+                          { id: 'with_driver', label: 'Dengan Driver', icon: '🚗', desc: 'Termasuk driver profesional' },
+                          { id: 'self_drive', label: 'Lepas Kunci', icon: '🔑', desc: 'Self drive, bebas kemana saja' },
                         ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setRentalType(opt.value)}
-                            className={`p-4 rounded-xl border text-left transition-all ${
-                              rentalType === opt.value
-                                ? 'bg-gold-500/10 border-gold-500/30'
-                                : 'bg-white/[0.02] border-white/5 hover:border-gold-500/20'
+                          <motion.button
+                            key={opt.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setRentalType(opt.id as any)}
+                            className={`p-4 rounded-xl text-left transition-all ${
+                              rentalType === opt.id
+                                ? 'neu-gold'
+                                : 'neu-soft'
                             }`}
                           >
                             <span className="text-2xl">{opt.icon}</span>
-                            <p className="text-white font-medium mt-2">{opt.label}</p>
+                            <p className={`font-medium mt-2 ${
+                              rentalType === opt.id ? 'text-gold-300' : 'text-gray-300'
+                            }`}>
+                              {opt.label}
+                            </p>
                             <p className="text-xs text-gray-500 mt-1">{opt.desc}</p>
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     </div>
 
                     {/* Dates */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1 block">Tanggal Mulai</label>
-                        <input
-                          type="date"
-                          value={formData.startDate}
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50 [color-scheme:dark]"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1 block">Tanggal Selesai</label>
-                        <input
-                          type="date"
-                          value={formData.endDate}
-                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50 [color-scheme:dark]"
-                        />
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Tanggal Sewa</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Tanggal Mulai</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                            <input
+                              type="date"
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              className="input-luxury pl-10 [color-scheme:dark]"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Tanggal Selesai</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                            <input
+                              type="date"
+                              value={endDate}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="input-luxury pl-10 [color-scheme:dark]"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Step 1: Renter Data */}
-                {bookingStep === 1 && (
-                  <div>
-                    <h3 className="font-[Playfair_Display] text-xl font-bold text-white mb-6">
-                      Data Penyewa
-                    </h3>
+                {/* Step 2: Renter Information */}
+                {bookingStep === 2 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
+                        STEP 2: Informasi Penyewa
+                      </h2>
+                      <p className="text-gray-400 text-sm">Lengkapi data diri Anda untuk proses verifikasi</p>
+                    </div>
 
-                    {/* Renter type */}
-                    <div className="mb-6">
-                      <label className="text-sm text-gray-300 mb-3 block">Tipe Penyewa</label>
-                      <div className="grid grid-cols-2 gap-3">
+                    {/* Nama Lengkap - Full Width */}
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1.5 block">Nama Lengkap:</label>
+                      <input
+                        type="text"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        className="input-luxury w-full"
+                        placeholder="John Doe"
+                      />
+                    </div>
+
+                    {/* No. KTP dan No. SIM - 2 Kolom */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1.5 block">No. KTP:</label>
+                        <input
+                          type="text"
+                          value={formData.ktpNumber}
+                          onChange={(e) => setFormData({ ...formData, ktpNumber: e.target.value })}
+                          className="input-luxury"
+                          placeholder="317XXXXXXXXX"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1.5 block">No. SIM:</label>
+                        <input
+                          type="text"
+                          value={formData.simNumber}
+                          onChange={(e) => setFormData({ ...formData, simNumber: e.target.value })}
+                          className="input-luxury"
+                          placeholder="123XXXXXXXXX"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Upload Dokumen */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen:</label>
+                      <div className="grid grid-cols-3 gap-3">
                         {[
-                          { value: 'individual' as UserRole, label: 'Pribadi', desc: 'KTP, SIM A, KK' },
-                          { value: 'corporate' as UserRole, label: 'Corporate', desc: 'NIB, Akta, NPWP' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setRenterType(opt.value)}
-                            className={`p-4 rounded-xl border text-left transition-all ${
-                              renterType === opt.value
-                                ? 'bg-gold-500/10 border-gold-500/30'
-                                : 'bg-white/[0.02] border-white/5 hover:border-gold-500/20'
+                          { id: 'ktp', label: 'KTP', uploaded: uploadStatus.ktp },
+                          { id: 'sim', label: 'SIM', uploaded: uploadStatus.sim },
+                          { id: 'kk', label: 'KK', uploaded: uploadStatus.kk },
+                        ].map((doc) => (
+                          <motion.div
+                            key={doc.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setUploadStatus({ ...uploadStatus, [doc.id]: !doc.uploaded })}
+                            className={`aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${
+                              doc.uploaded
+                                ? 'neu-gold border-2 border-gold-500/30'
+                                : 'neu-soft'
                             }`}
                           >
-                            <p className="text-white font-medium">{opt.label}</p>
-                            <p className="text-xs text-gray-500 mt-1">{opt.desc}</p>
-                          </button>
+                            {doc.uploaded ? (
+                              <>
+                                <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center mb-2">
+                                  <FileText className="w-6 h-6 text-gold-400" />
+                                </div>
+                                <p className="text-sm text-gold-300 font-medium mb-1">{doc.label}</p>
+                                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                                  <Upload className="w-6 h-6 text-gray-500" />
+                                </div>
+                                <p className="text-sm text-gray-400 font-medium mb-1">{doc.label}</p>
+                                <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
+                              </>
+                            )}
+                          </motion.div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Form fields */}
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-gray-400 mb-1 block">
-                            {renterType === 'individual' ? 'Nama Lengkap' : 'Nama Perusahaan'}
-                          </label>
-                          <input
-                            type="text"
-                            value={renterType === 'individual' ? formData.name : formData.companyName}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              ...(renterType === 'individual' ? { name: e.target.value } : { companyName: e.target.value })
-                            })}
-                            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                            placeholder={renterType === 'individual' ? 'Sesuai KTP' : 'PT / CV'}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-400 mb-1 block">Email</label>
-                          <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                            placeholder="email@example.com"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-gray-400 mb-1 block">No. Telepon</label>
-                          <input
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                            placeholder="+62 812 xxx xxxx"
-                          />
-                        </div>
-                        {renterType === 'individual' ? (
-                          <>
-                            <div>
-                              <label className="text-xs text-gray-400 mb-1 block">No. KTP</label>
-                              <input
-                                type="text"
-                                value={formData.ktp}
-                                onChange={(e) => setFormData({ ...formData, ktp: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                                placeholder="16 digit NIK"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <label className="text-xs text-gray-400 mb-1 block">NIB</label>
-                              <input
-                                type="text"
-                                value={formData.nib}
-                                onChange={(e) => setFormData({ ...formData, nib: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                                placeholder="Nomor Induk Berusaha"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {renterType === 'corporate' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs text-gray-400 mb-1 block">NPWP</label>
-                            <input
-                              type="text"
-                              value={formData.npwp}
-                              onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                              placeholder="NPWP Perusahaan"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400 mb-1 block">PIC (Person in Charge)</label>
-                            <input
-                              type="text"
-                              value={formData.pic}
-                              onChange={(e) => setFormData({ ...formData, pic: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                              placeholder="Nama PIC"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    {/* Lanjut Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleNext}
+                      className="w-full btn-luxury py-3.5 flex items-center justify-center gap-2"
+                    >
+                      LANJUT
+                      <ArrowRight className="w-5 h-5" />
+                    </motion.button>
                   </div>
                 )}
 
-                {/* Step 2: Trip Details */}
-                {bookingStep === 2 && (
-                  <div>
-                    <h3 className="font-[Playfair_Display] text-xl font-bold text-white mb-6">
-                      Rencana Perjalanan
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1 block">Lokasi Penjemputan</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/60" />
-                          <input
-                            type="text"
-                            value={formData.pickupLocation}
-                            onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                            placeholder="Alamat / landmark penjemputan"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1 block">Lokasi Pengantaran</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/60" />
-                          <input
-                            type="text"
-                            value={formData.dropoffLocation}
-                            onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-gold-500/50"
-                            placeholder="Alamat / landmark pengantaran"
-                          />
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-xl bg-gold-500/5 border border-gold-500/10">
-                        <p className="text-sm text-gold-300">
-                          💡 <strong>Catatan:</strong> Untuk sewa dengan driver, biaya BBM dan tol ditanggung penyewa.
-                          Driver tersedia 24 jam dengan shift 12 jam.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 3: Documents */}
+                {/* Step 3: Trip Plan */}
                 {bookingStep === 3 && (
-                  <div>
-                    <h3 className="font-[Playfair_Display] text-xl font-bold text-white mb-6">
-                      Upload Dokumen & Jaminan
-                    </h3>
-                    <div className="space-y-4">
-                      {renterType === 'individual' ? (
-                        <>
-                          <p className="text-sm text-gray-400 mb-4">
-                            Syarat penyewa pribadi: Upload foto dokumen berikut
-                          </p>
-                          {['KTP (Kartu Tanda Penduduk)', 'SIM A (Surat Izin Mengemudi)', 'KK (Kartu Keluarga)', 'Jaminan (BPKB/Sertifikat)'].map((doc, i) => (
-                            <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-gold-500/20 transition-colors cursor-pointer">
-                              <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center">
-                                <Upload className="w-5 h-5 text-gold-400" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-white text-sm font-medium">{doc}</p>
-                                <p className="text-xs text-gray-500">JPG, PNG max 5MB</p>
-                              </div>
-                              <span className="text-xs text-gold-400">Upload</span>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm text-gray-400 mb-4">
-                            Syarat penyewa corporate: Upload dokumen berikut
-                          </p>
-                          {['NIB (Nomor Induk Berusaha)', 'Akta Pendirian Perusahaan', 'NPWP Perusahaan', 'Guarantee Letter', 'KTP PIC'].map((doc, i) => (
-                            <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-gold-500/20 transition-colors cursor-pointer">
-                              <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center">
-                                <Upload className="w-5 h-5 text-gold-400" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-white text-sm font-medium">{doc}</p>
-                                <p className="text-xs text-gray-500">PDF, JPG max 10MB</p>
-                              </div>
-                              <span className="text-xs text-gold-400">Upload</span>
-                            </div>
-                          ))}
-                        </>
-                      )}
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
+                        Rencana Perjalanan
+                      </h2>
+                      <p className="text-gray-400 text-sm">Informasi tentang rencana perjalanan Anda</p>
                     </div>
-                  </div>
-                )}
 
-                {/* Step 4: Payment */}
-                {bookingStep === 4 && (
-                  <div>
-                    <h3 className="font-[Playfair_Display] text-xl font-bold text-white mb-6">
-                      Pembayaran
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-xl bg-gold-500/5 border border-gold-500/10">
-                        <p className="text-sm text-gold-300 font-medium mb-2">Sistem Pembayaran DP</p>
-                        <p className="text-xs text-gray-400">
-                          Bayar DP 30% untuk konfirmasi booking. Pelunasan dilakukan saat pick-up kendaraan.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-                          <p className="text-xs text-gray-500 mb-1">DP (30%)</p>
-                          <p className="text-gold-gradient font-bold text-xl">{formatCurrency(dpAmount)}</p>
-                          <p className="text-xs text-gray-500 mt-1">Bayar sekarang</p>
-                        </div>
-                        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-                          <p className="text-xs text-gray-500 mb-1">Pelunasan</p>
-                          <p className="text-white font-bold text-xl">{formatCurrency(remainingAmount)}</p>
-                          <p className="text-xs text-gray-500 mt-1">Saat pick-up</p>
-                        </div>
-                      </div>
-
-                      {/* Payment methods */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-300 mb-3">Metode Pembayaran</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {['Bank Transfer', 'Virtual Account', 'E-Wallet', 'Credit Card', 'QRIS', 'Klaim Corporate'].map((method, i) => (
-                            <button
-                              key={i}
-                              className="p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-gold-500/20 text-sm text-gray-300 hover:text-white transition-all text-center"
-                            >
-                              {method}
-                            </button>
-                          ))}
+                        <label className="text-xs text-gray-400 mb-1.5 block">Kota Asal</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                          <input
+                            type="text"
+                            value={formData.originCity}
+                            onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
+                            className="input-luxury pl-10"
+                            placeholder="Kota asal"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1.5 block">Kota Tujuan</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                          <input
+                            type="text"
+                            value={formData.destinationCity}
+                            onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
+                            className="input-luxury pl-10"
+                            placeholder="Kota tujuan"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1.5 block">Estimasi Jarak (km)</label>
+                        <input
+                          type="number"
+                          value={formData.estimatedDistance}
+                          onChange={(e) => setFormData({ ...formData, estimatedDistance: e.target.value })}
+                          className="input-luxury"
+                          placeholder="Contoh: 500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1.5 block">Tujuan Perjalanan</label>
+                        <select
+                          value={formData.tripPurpose}
+                          onChange={(e) => setFormData({ ...formData, tripPurpose: e.target.value })}
+                          className="input-luxury"
+                        >
+                          <option value="">Pilih tujuan</option>
+                          <option value="bisnis">Bisnis</option>
+                          <option value="wisata">Wisata</option>
+                          <option value="keluarga">Keluarga</option>
+                          <option value="lainnya">Lainnya</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl glass-gold">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-gold-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gold-300 font-medium mb-1">Informasi Penting</p>
+                          <p className="text-xs text-gray-400">
+                            Untuk sewa dengan driver, biaya BBM dan tol ditanggung penyewa. Driver tersedia 24 jam dengan shift 12 jam.
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Step 5: Confirmation */}
-                {bookingStep === 5 && (
-                  <div className="text-center py-8">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    >
-                      <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-                      </div>
-                    </motion.div>
-                    <h3 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
-                      Booking Berhasil!
-                    </h3>
-                    <p className="text-gray-400 mb-6">
-                      Booking ID: <span className="text-gold-400 font-mono">#BK-{Date.now().toString(36).toUpperCase()}</span>
-                    </p>
-                    <div className="glass rounded-xl p-4 max-w-sm mx-auto mb-6">
-                      <p className="text-xs text-gray-500 mb-2">E-Contract akan dikirim ke email Anda</p>
-                      <p className="text-xs text-gray-500">Tim kami akan menghubungi dalam 5 menit untuk konfirmasi</p>
+                {/* Step 4: Guarantee & Payment */}
+                {bookingStep === 4 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
+                        Jaminan & Pembayaran
+                      </h2>
+                      <p className="text-gray-400 text-sm">Pilih jenis jaminan dan metode pembayaran</p>
                     </div>
-                    <button
-                      onClick={() => setCurrentPage('dashboard')}
-                      className="btn-luxury"
-                    >
-                      Lihat Dashboard
-                    </button>
+
+                    {/* Guarantee Type */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Pilih Jaminan</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                          { id: 'ktp', label: 'KTP Asli', icon: '🆔' },
+                          { id: 'bpkb', label: 'BPKB', icon: '📄' },
+                          { id: 'cash', label: 'Uang Tunai', icon: '💵' },
+                        ].map((opt) => (
+                          <motion.button
+                            key={opt.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setFormData({ ...formData, guaranteeType: opt.id })}
+                            className={`p-4 rounded-xl text-center transition-all ${
+                              formData.guaranteeType === opt.id
+                                ? 'neu-gold'
+                                : 'neu-soft'
+                            }`}
+                          >
+                            <span className="text-2xl">{opt.icon}</span>
+                            <p className={`text-sm font-medium mt-2 ${
+                              formData.guaranteeType === opt.id ? 'text-gold-300' : 'text-gray-300'
+                            }`}>
+                              {opt.label}
+                            </p>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Upload Guarantee Document */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen Jaminan</label>
+                      <motion.div
+                        whileHover={{ scale: 1.01 }}
+                        className="p-6 rounded-xl neu-soft text-center cursor-pointer"
+                      >
+                        <Upload className="w-8 h-8 text-gold-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-300 font-medium">Upload Foto Jaminan</p>
+                        <p className="text-xs text-gray-500 mt-1">JPG, PNG max 10MB</p>
+                      </motion.div>
+                    </div>
+
+                    {/* Payment Method */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">
+                        Pembayaran DP (50%): {formatCurrency(pricing.dp)}
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                          { id: 'transfer', label: 'Transfer Bank', icon: '🏦' },
+                          { id: 'cc', label: 'Credit Card', icon: '💳' },
+                          { id: 'ewallet', label: 'E-Wallet', icon: '📱' },
+                        ].map((opt) => (
+                          <motion.button
+                            key={opt.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setFormData({ ...formData, paymentMethod: opt.id })}
+                            className={`p-4 rounded-xl text-center transition-all ${
+                              formData.paymentMethod === opt.id
+                                ? 'neu-gold'
+                                : 'neu-soft'
+                            }`}
+                          >
+                            <span className="text-2xl">{opt.icon}</span>
+                            <p className={`text-sm font-medium mt-2 ${
+                              formData.paymentMethod === opt.id ? 'text-gold-300' : 'text-gray-300'
+                            }`}>
+                              {opt.label}
+                            </p>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: Terms & Confirmation */}
+                {bookingStep === 5 && (
+                  <div className="space-y-6">
+                    {/* Terms and Conditions Component */}
+                    <TermsAndConditions
+                      terms={getTermsByUserType('individual')}
+                      agreed={formData.agreeTerms}
+                      onAgree={(agreed) => setFormData({ ...formData, agreeTerms: agreed })}
+                    />
+
+                    {/* E-Signature */}
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">E-Signature</label>
+                      <motion.div
+                        whileHover={{ scale: 1.01 }}
+                        className="p-6 rounded-xl neu-soft text-center cursor-pointer"
+                      >
+                        <PenTool className="w-8 h-8 text-gold-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-300 font-medium">Tanda Tangan Digital</p>
+                        <p className="text-xs text-gray-500 mt-1">Klik untuk membuat e-signature</p>
+                      </motion.div>
+                    </div>
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation buttons */}
-            {bookingStep < 5 && (
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={() => setBookingStep(Math.max(0, bookingStep - 1))}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white transition-colors ${bookingStep === 0 ? 'invisible' : ''}`}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Kembali
-                </button>
+            {/* Navigation Buttons */}
+            <div className="flex gap-3 mt-6">
+              {bookingStep > 1 && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setBookingStep(Math.min(5, bookingStep + 1))}
-                  className="btn-luxury flex items-center gap-2"
+                  onClick={handleBack}
+                  className="flex-1 btn-ghost py-3 flex items-center justify-center gap-2"
                 >
-                  {bookingStep === 4 ? 'Bayar DP' : 'Lanjut'}
-                  <ChevronRight className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" />
+                  Kembali
                 </motion.button>
-              </div>
-            )}
+              )}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleNext}
+                className="flex-1 btn-luxury py-3 flex items-center justify-center gap-2"
+              >
+                {bookingStep === 5 ? 'Konfirmasi Booking' : 'Lanjut'}
+                <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </div>
           </div>
 
           {/* Sidebar - Order Summary */}
@@ -511,18 +602,18 @@ export default function BookingFlow() {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="glass rounded-2xl p-5 border border-gold-500/10 sticky top-24"
+              className="card-luxury p-5 sticky top-24"
             >
-              <h4 className="font-[Playfair_Display] text-lg font-bold text-white mb-4">
+              <h3 className="font-[Playfair_Display] text-lg font-bold text-white mb-4">
                 Ringkasan Pesanan
-              </h4>
+              </h3>
 
               {/* Vehicle */}
               <div className="flex gap-3 mb-4 pb-4 border-b border-white/5">
-                <img src={vehicle.image} alt={vehicle.name} className="w-16 h-16 rounded-lg object-cover" />
+                <img src={selectedVehicle.image} alt={selectedVehicle.name} className="w-16 h-16 rounded-lg object-cover" />
                 <div>
-                  <p className="text-white font-medium text-sm">{vehicle.name}</p>
-                  <p className="text-xs text-gray-500">{vehicle.brand} • {vehicle.year}</p>
+                  <p className="text-white font-medium text-sm">{selectedVehicle.name}</p>
+                  <p className="text-xs text-gray-500">{selectedVehicle.brand} • {selectedVehicle.year}</p>
                   <p className="text-xs text-gold-400 mt-1">
                     {rentalType === 'with_driver' ? '🚗 Dengan Driver' : '🔑 Lepas Kunci'}
                   </p>
@@ -533,34 +624,39 @@ export default function BookingFlow() {
               <div className="space-y-2 mb-4 pb-4 border-b border-white/5">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Durasi</span>
-                  <span className="text-white">{duration} hari</span>
+                  <span className="text-white">{pricing.days} hari</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Diskon</span>
-                    <span className="text-emerald-400">-{discount}%</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Tipe Sewa</span>
+                  <span className="text-white">{rentalDuration === 'daily' ? 'Harian' : rentalDuration === 'weekly' ? 'Mingguan' : 'Bulanan'}</span>
+                </div>
               </div>
 
-              {/* Total */}
-              <div className="space-y-2">
+              {/* Pricing */}
+              <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal</span>
-                  <span className="text-white">{formatCurrency(basePrice)}</span>
+                  <span className="text-white">{formatCurrency(pricing.basePrice)}</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold">
-                  <span className="text-gray-300">Total</span>
-                  <span className="text-gold-gradient">{formatCurrency(totalPrice)}</span>
+                {pricing.driverFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Jasa Driver</span>
+                    <span className="text-white">{formatCurrency(pricing.driverFee)}</span>
+                  </div>
+                )}
+                <div className="divider-subtle my-2" />
+                <div className="flex justify-between">
+                  <span className="text-gray-300 font-medium">Total</span>
+                  <span className="text-gold-gradient font-bold text-lg">{formatCurrency(pricing.total)}</span>
                 </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-white/5">
-                  <span className="text-gray-400">DP (30%)</span>
-                  <span className="text-gold-400 font-medium">{formatCurrency(dpAmount)}</span>
+                <div className="flex justify-between text-xs pt-2 border-t border-white/5">
+                  <span className="text-gray-400">DP (50%)</span>
+                  <span className="text-gold-400 font-medium">{formatCurrency(pricing.dp)}</span>
                 </div>
               </div>
 
-              {/* Security badges */}
-              <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+              {/* Trust badges */}
+              <div className="pt-4 border-t border-white/5 space-y-2">
                 <div className="flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-xs text-gray-500">Asuransi all-risk included</span>
