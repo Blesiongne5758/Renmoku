@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
 import Navbar from './components/Navbar';
 import LoadingScreen from './components/LoadingScreen';
-import HomePage from './pages/HomePage';
+import LandingPage from './pages/LandingPage';
 import FleetPage from './pages/FleetPage';
 import BookingFlow from './components/BookingFlow';
 import DashboardPage from './pages/DashboardPage';
+import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 
 function App() {
@@ -16,17 +17,19 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage />;
+        return <LandingPage />;
       case 'fleet':
         return <FleetPage />;
       case 'booking':
         return <BookingFlow />;
       case 'dashboard':
         return <DashboardPage />;
+      case 'auth':
+        return <AuthPage />;
       case 'database':
         return <DatabaseSchemaPage />;
       default:
-        return <HomePage />;
+        return <LandingPage />;
     }
   };
 

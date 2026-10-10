@@ -1,17 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Car, User, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Car, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 
 export default function Navbar() {
-  const { currentPage, setCurrentPage, isMenuOpen, setMenuOpen, currentUser } = useAppStore();
+  const { currentPage, setCurrentPage, isMenuOpen, setMenuOpen, currentUser, isAuthenticated, logout } = useAppStore();
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
     { id: 'fleet', label: 'Armada' },
-    { id: 'booking', label: 'Booking' },
-    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'dashboard', label: 'Dashboard', requireAuth: true },
     { id: 'database', label: 'Database' },
   ];
+
+  const filteredNavItems = navItems.filter(item => !item.requireAuth || isAuthenticated);
 
   return (
     <motion.nav
@@ -38,7 +39,7 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <motion.button
                 key={item.id}
                 whileHover={{ scale: 1.05 }}
@@ -57,23 +58,50 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
-            {currentUser ? (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-500/10 border border-gold-500/20"
-              >
-                <User className="w-4 h-4 text-gold-400" />
-                <span className="text-sm text-gold-300">{currentUser.name}</span>
-              </motion.button>
+            {isAuthenticated && currentUser ? (
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setCurrentPage('dashboard')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gold-500/10 border border-gold-500/20"
+                >
+                  <User className="w-4 h-4 text-gold-400" />
+                  <span className="text-sm text-gold-300 max-w-[120px] truncate">{currentUser.name}</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => { logout(); setCurrentPage('home'); }}
+                  className="p-2 rounded-lg border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-500/20 transition-all"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </motion.button>
+              </div>
             ) : (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCurrentPage('login')}
-                className="btn-luxury text-sm"
-              >
-                Masuk
-              </motion.button>
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    useAppStore.getState().setAuthMode('login');
+                    setCurrentPage('auth');
+                  }}
+                  className="px-4 py-2 rounded-lg border border-gold-500/30 text-gold-300 text-sm font-medium hover:bg-gold-500/5 transition-all"
+                >
+                  Masuk
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    useAppStore.getState().setAuthMode('register');
+                    setCurrentPage('auth');
+                  }}
+                  className="btn-luxury text-sm"
+                >
+                  Daftar
+                </motion.button>
+              </div>
             )}
           </div>
 
@@ -97,7 +125,7 @@ export default function Navbar() {
             className="md:hidden glass border-t border-gold-500/10"
           >
             <div className="px-4 py-4 space-y-2">
-              {navItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => {
@@ -113,6 +141,47 @@ export default function Navbar() {
                   {item.label}
                 </button>
               ))}
+              
+              {/* Auth buttons for mobile */}
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                {isAuthenticated && currentUser ? (
+                  <>
+                    <div className="px-4 py-2 rounded-lg bg-gold-500/10 border border-gold-500/20">
+                      <p className="text-xs text-gray-500">Login sebagai</p>
+                      <p className="text-sm text-gold-300 font-medium">{currentUser.name}</p>
+                    </div>
+                    <button
+                      onClick={() => { logout(); setCurrentPage('home'); setMenuOpen(false); }}
+                      className="block w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/5"
+                    >
+                      Keluar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        useAppStore.getState().setAuthMode('login');
+                        setCurrentPage('auth');
+                        setMenuOpen(false);
+                      }}
+                      className="block w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-gold-300 border border-gold-500/30 hover:bg-gold-500/5"
+                    >
+                      Masuk
+                    </button>
+                    <button
+                      onClick={() => {
+                        useAppStore.getState().setAuthMode('register');
+                        setCurrentPage('auth');
+                        setMenuOpen(false);
+                      }}
+                      className="block w-full text-center btn-luxury py-3 text-sm"
+                    >
+                      Daftar Sekarang
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

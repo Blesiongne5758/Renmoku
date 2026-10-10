@@ -60,10 +60,13 @@ export default function BookingFlow() {
     ? Math.ceil((new Date(formData.endDate).getTime() - new Date(formData.startDate).getTime()) / (1000 * 60 * 60 * 24))
     : 1;
 
+  const { ownerSettings } = useAppStore();
+  
   const basePrice = calculatePrice(vehicle, duration);
   const discount = getDurationDiscount(duration);
   const totalPrice = basePrice * (1 - discount / 100);
-  const dpAmount = totalPrice * 0.3;
+  const dpPercentage = ownerSettings.defaultDpPercentage;
+  const dpAmount = totalPrice * (dpPercentage / 100);
   const remainingAmount = totalPrice - dpAmount;
 
   return (
@@ -415,13 +418,13 @@ export default function BookingFlow() {
                       <div className="p-4 rounded-xl bg-gold-500/5 border border-gold-500/10">
                         <p className="text-sm text-gold-300 font-medium mb-2">Sistem Pembayaran DP</p>
                         <p className="text-xs text-gray-400">
-                          Bayar DP 30% untuk konfirmasi booking. Pelunasan dilakukan saat pick-up kendaraan.
+                          Bayar DP {dpPercentage}% untuk konfirmasi booking. Pelunasan dilakukan saat pick-up kendaraan.
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-                          <p className="text-xs text-gray-500 mb-1">DP (30%)</p>
+                          <p className="text-xs text-gray-500 mb-1">DP ({dpPercentage}%)</p>
                           <p className="text-gold-gradient font-bold text-xl">{formatCurrency(dpAmount)}</p>
                           <p className="text-xs text-gray-500 mt-1">Bayar sekarang</p>
                         </div>
@@ -554,7 +557,7 @@ export default function BookingFlow() {
                   <span className="text-gold-gradient">{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-sm pt-2 border-t border-white/5">
-                  <span className="text-gray-400">DP (30%)</span>
+                  <span className="text-gray-400">DP ({dpPercentage}%)</span>
                   <span className="text-gold-400 font-medium">{formatCurrency(dpAmount)}</span>
                 </div>
               </div>
