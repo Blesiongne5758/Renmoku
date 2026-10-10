@@ -9,11 +9,12 @@ import VehicleDetailPage from './pages/VehicleDetailPage';
 import BookingFlow from './components/BookingFlow';
 import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
+import OwnerDashboard from './components/OwnerDashboard';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 
 function App() {
-  const { currentPage } = useAppStore();
+  const { currentPage, currentUser } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
 
   const renderPage = () => {
@@ -29,6 +30,10 @@ function App() {
       case 'success':
         return <SuccessPage />;
       case 'dashboard':
+        // Check if user is owner
+        if (currentUser?.role === 'owner') {
+          return <OwnerDashboard />;
+        }
         return <DashboardPage />;
       case 'auth':
         return <AuthPage />;
