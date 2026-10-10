@@ -1,9 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { Toaster } from 'sonner';
 import { useAppStore } from './stores/useAppStore';
 import { SocketProvider } from './components/SocketProvider';
 import Navbar from './components/Navbar';
 import LoadingScreen from './components/LoadingScreen';
+import RealtimeNotifier from './components/RealtimeNotifier';
 import LandingPage from './pages/LandingPage';
 import FleetPage from './pages/FleetPage';
 import VehicleDetailPage from './pages/VehicleDetailPage';
@@ -75,6 +77,22 @@ function App() {
                 {renderPage()}
               </motion.main>
             </AnimatePresence>
+            
+            {/* Real-time Notification System */}
+            <RealtimeNotifier />
+            
+            {/* Toast Notifications */}
+            <Toaster 
+              position="top-right" 
+              theme="dark"
+              toastOptions={{
+                style: {
+                  background: '#1a1a1a',
+                  border: '1px solid rgba(212, 175, 55, 0.2)',
+                  color: '#fff',
+                },
+              }}
+            />
           </>
         )}
       </div>
