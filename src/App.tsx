@@ -10,6 +10,7 @@ import BookingFlow from './components/BookingFlow';
 import SuccessPage from './pages/SuccessPage';
 import DashboardPage from './pages/DashboardPage';
 import OwnerDashboardNew from './components/OwnerDashboardNew';
+import AdminDashboard from './components/admin/AdminDashboard';
 import AuthPage from './pages/AuthPage';
 import DatabaseSchemaPage from './pages/DatabaseSchemaPage';
 import TermsPage from './pages/TermsPage';
@@ -31,10 +32,14 @@ function App() {
       case 'success':
         return <SuccessPage />;
       case 'dashboard':
-        // Check if user is owner
-if (currentUser?.role === 'owner') {
-        return <OwnerDashboardNew />;
-      }        return <DashboardPage />;
+        // Check user role for appropriate dashboard
+        if (currentUser?.role === 'owner') {
+          return <OwnerDashboardNew />;
+        }
+        if (currentUser?.role === 'admin') {
+          return <AdminDashboard />;
+        }
+        return <DashboardPage />;
       case 'auth':
         return <AuthPage />;
       case 'database':
