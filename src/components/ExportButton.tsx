@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, FileText, FileSpreadsheet, File } from 'lucide-react';
 import {
-  exportToPDF,
-  exportToExcel,
-  exportToCSV,
+  exportBookingToPDF,
   exportBookingsToExcel,
   exportVehiclesToExcel,
-  exportUsersToCSV,
-  exportRevenueReportToPDF,
-  exportRevenueReportToExcel,
+  exportUsersToExcel,
+  exportToCSV,
+  exportRevenueReportPDF,
 } from '../lib/exportUtils';
 
 type ExportFormat = 'pdf' | 'excel' | 'csv';
@@ -53,50 +51,27 @@ export default function ExportButton({
         
         switch (formatToUse) {
           case 'pdf':
-            exportToPDF({
-              title: filename,
-              headers: customHeaders,
-              data: transformedData.map((item) =>
-                customHeaders.map((header) => item[header] || '-')
-              ),
-              filename,
-            });
+            // Use exportBookingToPDF for custom data
+            exportBookingToPDF(transformedData[0] || data[0]);
             break;
           case 'excel':
-            exportToExcel({
-              data: transformedData,
-              filename,
-            });
+            exportBookingsToExcel(transformedData, filename);
             break;
           case 'csv':
-            exportToCSV({
-              data: transformedData,
-              filename,
-            });
+            exportToCSV(transformedData, filename);
             break;
         }
       } else {
         // Default export
         switch (formatToUse) {
           case 'pdf':
-            exportToPDF({
-              title: filename,
-              headers: Object.keys(data[0] || {}),
-              data: data.map((item) => Object.values(item)),
-              filename,
-            });
+            exportBookingToPDF(data[0]);
             break;
           case 'excel':
-            exportToExcel({
-              data,
-              filename,
-            });
+            exportBookingsToExcel(data, filename);
             break;
           case 'csv':
-            exportToCSV({
-              data,
-              filename,
-            });
+            exportToCSV(data, filename);
             break;
         }
       }
@@ -232,26 +207,8 @@ export function BookingExportButton({ bookings, variant = 'primary', size = 'md'
       if (format === 'excel') {
         exportBookingsToExcel(bookings);
       } else {
-        // PDF export for bookings
-        const data = bookings.map((b) => [
-          b.id,
-          new Date(b.createdAt).toLocaleDateString('id-ID'),
-          b.renter?.name || '-',
-          `${b.vehicle?.brand} ${b.vehicle?.model}`,
-          b.startDate,
-          b.endDate,
-          `Rp ${b.totalPrice?.toLocaleString('id-ID')}`,
-          b.status,
-        ]);
-
-        exportToPDF({
-          title: 'Laporan Booking',
-          subtitle: `Total: ${bookings.length} booking`,
-          headers: ['ID', 'Tanggal', 'Penyewa', 'Kendaraan', 'Mulai', 'Selesai', 'Total', 'Status'],
-          data,
-          filename: `bookings-${new Date().toISOString().split('T')[0]}`,
-          orientation: 'landscape',
-        });
+        // PDF export for first booking as sample
+        exportBookingToPDF(bookings[0]);
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -360,9 +317,10 @@ export function RevenueExportButton({ report, variant = 'primary', size = 'md' }
       await new Promise((resolve) => setTimeout(resolve, 500));
       
       if (format === 'excel') {
-        exportRevenueReportToExcel(report);
+        // For Excel, use exportBookingsToExcel as fallback
+        exportBookingsToExcel(report?.breakdown || [], `revenue-report-${report?.period || 'report'}`);
       } else {
-        exportRevenueReportToPDF(report);
+        exportRevenueReportPDF(report);
       }
     } catch (error) {
       console.error('Export error:', error);

@@ -1,8 +1,8 @@
-# Export Documents Feature
+# Export Documents - Complete Implementation Guide
 
 ## Overview
 
-Fitur export dokumen untuk Renmoku platform yang mendukung export data ke format PDF, Excel, dan CSV. Menggunakan library jsPDF, xlsx, dan file-saver.
+Sistem export dokumen lengkap untuk platform Renmoku dengan dukungan PDF, Excel, dan CSV. Menggunakan library jsPDF, xlsx, dan file-saver.
 
 ## Installation
 
@@ -14,13 +14,14 @@ npm install -D @types/file-saver
 
 ## Features
 
-✅ **PDF Export** - Export data ke PDF dengan tabel dan formatting  
-✅ **Excel Export** - Export data ke Excel (.xlsx) dengan auto-size columns  
-✅ **CSV Export** - Export data ke CSV untuk kompatibilitas luas  
+✅ **PDF Export** - Export dengan styling premium (gold accent theme)  
+✅ **Excel Export** - Export dengan auto-size columns  
+✅ **CSV Export** - Export universal dengan UTF-8 encoding  
 ✅ **Custom Formatting** - Support untuk custom headers dan data transformation  
 ✅ **Multiple Formats** - Pilih format export sesuai kebutuhan  
 ✅ **Loading States** - Visual feedback saat proses export  
-✅ **Error Handling** - Graceful error handling dengan user feedback  
+✅ **Error Handling** - Graceful error handling  
+✅ **Type Safety** - Full TypeScript support  
 
 ## Components
 
@@ -86,7 +87,7 @@ function BookingsList() {
 
 **Features:**
 - Export ke Excel dengan format booking
-- Export ke PDF dengan landscape orientation
+- Export ke PDF invoice untuk single booking
 - Auto-format currency dan tanggal
 - Include semua informasi booking
 
@@ -136,29 +137,9 @@ function RevenueReport() {
 
 ### PDF Export
 
-#### `exportToPDF(options)`
-
-Export generic data ke PDF.
-
-```typescript
-import { exportToPDF } from './lib/exportUtils';
-
-exportToPDF({
-  title: 'Laporan Users',
-  subtitle: 'Total: 100 users',
-  headers: ['ID', 'Nama', 'Email', 'Role'],
-  data: [
-    ['1', 'John Doe', 'john@example.com', 'RENTER'],
-    ['2', 'Jane Smith', 'jane@example.com', 'OWNER'],
-  ],
-  filename: 'users-report',
-  orientation: 'portrait', // or 'landscape'
-});
-```
-
 #### `exportBookingToPDF(booking)`
 
-Export detail booking ke PDF invoice.
+Export detail booking ke PDF invoice dengan styling premium.
 
 ```typescript
 import { exportBookingToPDF } from './lib/exportUtils';
@@ -168,9 +149,9 @@ exportBookingToPDF({
   createdAt: '2026-10-15T10:00:00Z',
   status: 'CONFIRMED',
   renter: {
-    name: 'Ahmad Sudirman',
-    email: 'ahmad@example.com',
-    phone: '+6281234567890',
+    renterIndividual: {
+      fullName: 'Ahmad Sudirman',
+    },
   },
   vehicle: {
     brand: 'Toyota',
@@ -179,84 +160,92 @@ exportBookingToPDF({
   },
   startDate: '2026-10-20',
   endDate: '2026-10-25',
+  durationType: 'DAILY',
+  withDriver: true,
+  tripOrigin: 'Jakarta',
+  tripDestination: 'Bandung',
+  guaranteeType: 'KTP',
   totalPrice: 12500000,
   dpAmount: 6250000,
 });
 ```
 
-#### `exportRevenueReportToPDF(report)`
+**PDF Features:**
+- ✅ Dark header dengan gold accent (RENMOKU branding)
+- ✅ Invoice title "Invoice Sewa Kendaraan"
+- ✅ Booking info (ID, tanggal, status)
+- ✅ Details table dengan grid theme
+- ✅ Payment summary dengan striped theme
+- ✅ Footer dengan legal disclaimer
+- ✅ Auto-pagination
+
+#### `exportRevenueReportPDF(report)`
 
 Export laporan pendapatan ke PDF.
 
 ```typescript
-import { exportRevenueReportToPDF } from './lib/exportUtils';
+import { exportRevenueReportPDF } from './lib/exportUtils';
 
-exportRevenueReportToPDF({
-  period: '2026-01-01 to 2026-10-31',
+exportRevenueReportPDF({
+  period: 'Oktober 2026',
   totalRevenue: 1200000000,
   totalBookings: 810,
-  totalCommission: 150000000,
-  averageBookingValue: 1481481,
-  growthRate: 18.5,
-  breakdown: [
-    { date: '2026-01-01', revenue: 4200000, bookings: 3 },
-    { date: '2026-01-02', revenue: 5800000, bookings: 4 },
+  vehicles: [
+    { name: 'Toyota Alphard', revenue: 45000000, bookings: 15 },
+    { name: 'Honda HR-V', revenue: 38000000, bookings: 12 },
   ],
 });
 ```
+
+**PDF Features:**
+- ✅ Dark header dengan gold accent
+- ✅ Period information
+- ✅ Summary table (Total Pendapatan, Total Booking, Rata-rata)
+- ✅ Vehicle breakdown table dengan purple accent
+- ✅ Auto-format currency
 
 ### Excel Export
 
-#### `exportToExcel(options)`
-
-Export generic data ke Excel.
-
-```typescript
-import { exportToExcel } from './lib/exportUtils';
-
-exportToExcel({
-  data: [
-    { id: 1, name: 'John', email: 'john@example.com' },
-    { id: 2, name: 'Jane', email: 'jane@example.com' },
-  ],
-  filename: 'users',
-  sheetName: 'Users',
-});
-```
-
-#### `exportBookingsToExcel(bookings)`
+#### `exportBookingsToExcel(bookings, filename)`
 
 Export data booking ke Excel dengan format khusus.
 
 ```typescript
 import { exportBookingsToExcel } from './lib/exportUtils';
 
-exportBookingsToExcel(bookings);
+exportBookingsToExcel(bookings, 'bookings');
 // Output: bookings-2026-10-15.xlsx
 ```
 
 **Columns:**
 - ID Booking
-- Tanggal
-- Penyewa
-- Email
+- Tanggal Booking
 - Kendaraan
+- Tahun
+- Penyewa
+- Tipe Penyewa (Individual/Corporate)
 - Mulai
 - Selesai
 - Durasi
 - Dengan Driver
-- Total
-- DP
+- Total (Rp)
+- DP (Rp)
 - Status
 
-#### `exportVehiclesToExcel(vehicles)`
+**Features:**
+- ✅ Auto-size columns
+- ✅ Formatted currency
+- ✅ Indonesian date format
+- ✅ Multiple sheets support
+
+#### `exportVehiclesToExcel(vehicles, filename)`
 
 Export data kendaraan ke Excel.
 
 ```typescript
 import { exportVehiclesToExcel } from './lib/exportUtils';
 
-exportVehiclesToExcel(vehicles);
+exportVehiclesToExcel(vehicles, 'vehicles');
 // Output: vehicles-2026-10-15.xlsx
 ```
 
@@ -265,102 +254,170 @@ exportVehiclesToExcel(vehicles);
 - Brand
 - Model
 - Tahun
-- Transmisi
+- Transmisi (Otomatis/Manual)
 - Kapasitas
 - BBM
-- Harga/Hari
-- Harga/Minggu
-- Harga/Bulan
+- Harga/Hari (Rp)
+- Harga/Minggu (Rp)
+- Harga/Bulan (Rp)
 - Status
 - Lokasi
 
-#### `exportRevenueReportToExcel(report)`
+#### `exportUsersToExcel(users, filename)`
 
-Export laporan pendapatan ke Excel dengan multiple sheets.
-
-```typescript
-import { exportRevenueReportToExcel } from './lib/exportUtils';
-
-exportRevenueReportToExcel(report);
-// Output: revenue-report-2026-10-15.xlsx
-// Sheets: Ringkasan, Detail Harian
-```
-
-### CSV Export
-
-#### `exportToCSV(options)`
-
-Export generic data ke CSV.
+Export data users ke Excel.
 
 ```typescript
-import { exportToCSV } from './lib/exportUtils';
+import { exportUsersToExcel } from './lib/exportUtils';
 
-exportToCSV({
-  data: [
-    { id: 1, name: 'John', email: 'john@example.com' },
-    { id: 2, name: 'Jane', email: 'jane@example.com' },
-  ],
-  filename: 'users',
-});
-```
-
-#### `exportUsersToCSV(users)`
-
-Export data users ke CSV.
-
-```typescript
-import { exportUsersToCSV } from './lib/exportUtils';
-
-exportUsersToCSV(users);
-// Output: users-2026-10-15.csv
+exportUsersToExcel(users, 'users');
+// Output: users-2026-10-15.xlsx
 ```
 
 **Columns:**
 - ID
 - Email
 - Nama
-- Role
-- Status
+- Role (Penyewa/Pemilik/Admin)
+- Status (Terverifikasi/Pending/Ditolak)
 - Tanggal Daftar
 
-## Helper Functions
+### CSV Export
 
-### `formatCurrencyForExport(amount)`
+#### `exportToCSV(data, filename)`
 
-Format currency untuk export.
+Export generic data ke CSV.
 
 ```typescript
-import { formatCurrencyForExport } from './lib/exportUtils';
+import { exportToCSV } from './lib/exportUtils';
 
-formatCurrencyForExport(1500000);
-// Output: "Rp 1.500.000"
+exportToCSV(data, 'users');
+// Output: users-2026-10-15.csv
 ```
 
-### `formatDateForExport(date)`
+**Features:**
+- ✅ UTF-8 encoding
+- ✅ Proper escaping untuk special characters
+- ✅ Universal compatibility
+- ✅ Easy import ke sistem lain
 
-Format tanggal untuk export.
+## PDF Styling
+
+### Header Design
 
 ```typescript
-import { formatDateForExport } from './lib/exportUtils';
+// Dark background dengan gold accent
+doc.setFillColor(10, 10, 10);
+doc.rect(0, 0, 210, 40, 'F');
 
-formatDateForExport('2026-10-15');
-// Output: "15 Oktober 2026"
+doc.setTextColor(212, 175, 55); // Gold
+doc.setFontSize(24);
+doc.setFont('helvetica', 'bold');
+doc.text('RENMOKU', 20, 25);
+
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(10);
+doc.text('Premium Car Rental', 20, 32);
 ```
 
-### `generateFilename(prefix, extension)`
-
-Generate filename dengan timestamp.
+### Table Themes
 
 ```typescript
-import { generateFilename } from './lib/exportUtils';
+// Grid theme untuk details
+autoTable(doc, {
+  theme: 'grid',
+  headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0] },
+  styles: { fontSize: 10 },
+});
 
-generateFilename('bookings', 'xlsx');
-// Output: "bookings-2026-10-15.xlsx"
+// Striped theme untuk payment summary
+autoTable(doc, {
+  theme: 'striped',
+  headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0] },
+  styles: { fontSize: 11 },
+  columnStyles: {
+    1: { halign: 'right', fontStyle: 'bold' },
+  },
+});
+
+// Purple accent untuk vehicle breakdown
+autoTable(doc, {
+  theme: 'striped',
+  headStyles: { fillColor: [139, 92, 246] }, // Purple
+  columnStyles: {
+    1: { halign: 'center' },
+    2: { halign: 'right' },
+  },
+});
+```
+
+### Footer
+
+```typescript
+const pageHeight = doc.internal.pageSize.height;
+doc.setFontSize(8);
+doc.setTextColor(150, 150, 150);
+doc.text('Dokumen ini dihasilkan secara elektronik dan sah tanpa tanda tangan basah.', 20, pageHeight - 20);
+doc.text('© 2026 Renmoku. All rights reserved.', 20, pageHeight - 14);
+```
+
+## Excel Styling
+
+### Auto-size Columns
+
+```typescript
+ws['!cols'] = [
+  { wch: 20 }, // ID
+  { wch: 15 }, // Tanggal
+  { wch: 25 }, // Kendaraan
+  { wch: 8 },  // Tahun
+  { wch: 25 }, // Penyewa
+  { wch: 15 }, // Tipe
+  { wch: 15 }, // Mulai
+  { wch: 15 }, // Selesai
+  { wch: 12 }, // Durasi
+  { wch: 12 }, // Driver
+  { wch: 15 }, // Total
+  { wch: 15 }, // DP
+  { wch: 12 }, // Status
+];
+```
+
+### Multiple Sheets
+
+```typescript
+const wb = XLSX.utils.book_new();
+
+// Sheet 1: Summary
+const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+XLSX.utils.book_append_sheet(wb, summarySheet, 'Ringkasan');
+
+// Sheet 2: Details
+const detailsSheet = XLSX.utils.json_to_sheet(detailsData);
+XLSX.utils.book_append_sheet(wb, detailsSheet, 'Detail');
 ```
 
 ## Usage Examples
 
-### Example 1: Export Bookings with Custom Format
+### Example 1: Export Single Booking as PDF Invoice
+
+```typescript
+import { exportBookingToPDF } from './lib/exportUtils';
+
+function BookingDetail({ booking }) {
+  const handleDownloadInvoice = () => {
+    exportBookingToPDF(booking);
+  };
+
+  return (
+    <button onClick={handleDownloadInvoice}>
+      Download Invoice PDF
+    </button>
+  );
+}
+```
+
+### Example 2: Export Bookings List
 
 ```typescript
 import { BookingExportButton } from './components/ExportButton';
@@ -386,7 +443,7 @@ function BookingsPage() {
 }
 ```
 
-### Example 2: Export with Custom Data Transformation
+### Example 3: Export with Custom Format
 
 ```typescript
 import ExportButton from './components/ExportButton';
@@ -394,29 +451,24 @@ import ExportButton from './components/ExportButton';
 function UsersPage() {
   const [users, setUsers] = useState([]);
 
-  const customHeaders = ['Nama Lengkap', 'Email', 'Role', 'Status'];
-  
-  const customData = (user) => ({
-    'Nama Lengkap': user.name,
-    'Email': user.email,
-    'Role': user.role === 'RENTER' ? 'Penyewa' : 'Pemilik',
-    'Status': user.status === 'VERIFIED' ? 'Terverifikasi' : 'Pending',
-  });
-
   return (
     <ExportButton
       data={users}
       filename="users"
       format="excel"
       showFormatSelector={true}
-      customHeaders={customHeaders}
-      customData={customData}
+      customHeaders={['Nama', 'Email', 'Role']}
+      customData={(user) => ({
+        'Nama': user.name,
+        'Email': user.email,
+        'Role': user.role === 'RENTER' ? 'Penyewa' : 'Pemilik',
+      })}
     />
   );
 }
 ```
 
-### Example 3: Export Revenue Report
+### Example 4: Export Revenue Report
 
 ```typescript
 import { RevenueExportButton } from './components/ExportButton';
@@ -426,7 +478,6 @@ function RevenuePage() {
   const [report, setReport] = useState(null);
 
   useEffect(() => {
-    // Fetch revenue report
     reportsApi.revenue({
       startDate: '2026-01-01',
       endDate: '2026-10-31',
@@ -454,120 +505,6 @@ function RevenuePage() {
 }
 ```
 
-### Example 4: Export Single Booking as PDF Invoice
-
-```typescript
-import { exportBookingToPDF } from './lib/exportUtils';
-
-function BookingDetail({ booking }) {
-  const handleDownloadInvoice = () => {
-    exportBookingToPDF(booking);
-  };
-
-  return (
-    <div>
-      <h1>Detail Booking</h1>
-      
-      <button onClick={handleDownloadInvoice}>
-        Download Invoice PDF
-      </button>
-
-      {/* Booking details */}
-    </div>
-  );
-}
-```
-
-## PDF Styling
-
-### Custom PDF Theme
-
-```typescript
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
-const doc = new jsPDF();
-
-autoTable(doc, {
-  head: [['Column 1', 'Column 2']],
-  body: [['Data 1', 'Data 2']],
-  theme: 'striped', // 'striped' | 'grid' | 'plain'
-  headStyles: {
-    fillColor: [212, 175, 55], // Gold
-    textColor: [0, 0, 0],
-    fontStyle: 'bold',
-  },
-  alternateRowStyles: {
-    fillColor: [245, 245, 245],
-  },
-  styles: {
-    fontSize: 9,
-    cellPadding: 3,
-  },
-});
-```
-
-### PDF Page Orientation
-
-```typescript
-// Portrait (default)
-const doc = new jsPDF({
-  orientation: 'portrait',
-  unit: 'mm',
-  format: 'a4',
-});
-
-// Landscape
-const doc = new jsPDF({
-  orientation: 'landscape',
-  unit: 'mm',
-  format: 'a4',
-});
-```
-
-## Excel Styling
-
-### Auto-size Columns
-
-```typescript
-import * as XLSX from 'xlsx';
-
-const worksheet = XLSX.utils.json_to_sheet(data);
-
-// Auto-size columns
-const colWidths = Object.keys(data[0]).map((key) => {
-  const maxLen = Math.max(
-    key.length,
-    ...data.map((row) => String(row[key] || '').length)
-  );
-  return { wch: Math.min(maxLen + 2, 50) };
-});
-
-worksheet['!cols'] = colWidths;
-```
-
-### Multiple Sheets
-
-```typescript
-import * as XLSX from 'xlsx';
-
-const workbook = XLSX.utils.book_new();
-
-// Sheet 1: Summary
-const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan');
-
-// Sheet 2: Details
-const detailsSheet = XLSX.utils.json_to_sheet(detailsData);
-XLSX.utils.book_append_sheet(workbook, detailsSheet, 'Detail');
-
-// Save
-const excelBuffer = XLSX.write(workbook, {
-  bookType: 'xlsx',
-  type: 'array',
-});
-```
-
 ## Error Handling
 
 ### Try-Catch Pattern
@@ -575,7 +512,7 @@ const excelBuffer = XLSX.write(workbook, {
 ```typescript
 const handleExport = async () => {
   try {
-    await exportToExcel({ data, filename });
+    await exportBookingsToExcel(bookings);
     console.log('Export successful');
   } catch (error) {
     console.error('Export failed:', error);
@@ -592,7 +529,7 @@ const [isExporting, setIsExporting] = useState(false);
 const handleExport = async () => {
   setIsExporting(true);
   try {
-    await exportToExcel({ data, filename });
+    await exportBookingsToExcel(bookings);
   } catch (error) {
     console.error(error);
   } finally {
@@ -624,7 +561,7 @@ const exportLargeDataset = async (data: any[]) => {
   
   // Export each chunk separately
   for (const chunk of chunks) {
-    await exportToExcel({ data: chunk, filename: `data-part-${chunks.indexOf(chunk)}` });
+    await exportBookingsToExcel(chunk, `data-part-${chunks.indexOf(chunk)}`);
   }
 };
 ```
@@ -695,7 +632,7 @@ const handleExport = async () => {
     return;
   }
   
-  await exportToExcel({ data, filename });
+  await exportBookingsToExcel(bookings);
 };
 ```
 
@@ -704,28 +641,28 @@ const handleExport = async () => {
 ### Unit Test Example
 
 ```typescript
-import { exportToExcel } from './lib/exportUtils';
+import { exportBookingsToExcel } from './lib/exportUtils';
 
-describe('exportToExcel', () => {
-  it('should export data to Excel file', () => {
-    const data = [
-      { id: 1, name: 'John' },
-      { id: 2, name: 'Jane' },
+describe('exportBookingsToExcel', () => {
+  it('should export bookings to Excel file', () => {
+    const bookings = [
+      { id: '1', vehicle: { brand: 'Toyota', model: 'Alphard' } },
+      { id: '2', vehicle: { brand: 'Honda', model: 'HR-V' } },
     ];
 
     // Mock saveAs
     global.saveAs = jest.fn();
 
-    exportToExcel({ data, filename: 'test' });
+    exportBookingsToExcel(bookings);
 
     expect(global.saveAs).toHaveBeenCalled();
   });
 
   it('should handle empty data', () => {
-    const data = [];
+    const bookings = [];
     
     expect(() => {
-      exportToExcel({ data, filename: 'test' });
+      exportBookingsToExcel(bookings);
     }).not.toThrow();
   });
 });
@@ -776,4 +713,4 @@ const csvContent = BOM + csvData;
 
 **Status**: ✅ Production Ready  
 **Last Updated**: 2026-10-15  
-**Version**: 1.0.0
+**Version**: 2.0.0

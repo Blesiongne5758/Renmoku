@@ -4,281 +4,302 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
 // ============================================================================
-// PDF EXPORT UTILITIES
+// PDF EXPORT FUNCTIONS
 // ============================================================================
 
-interface PDFExportOptions {
-  title: string;
-  subtitle?: string;
-  headers: string[];
-  data: (string | number)[][];
-  filename: string;
-  orientation?: 'portrait' | 'landscape';
-}
-
 /**
- * Export data to PDF with table
+ * Export booking detail to PDF invoice
  */
-export const exportToPDF = (options: PDFExportOptions) => {
-  const { title, subtitle, headers, data, filename, orientation = 'portrait' } = options;
-
-  const doc = new jsPDF({
-    orientation,
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  // Add title
-  doc.setFontSize(18);
-  doc.setTextColor(40);
-  doc.text(title, 14, 22);
-
-  // Add subtitle if provided
-  if (subtitle) {
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(subtitle, 14, 30);
-  }
-
-  // Add date
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  const date = new Date().toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  doc.text(`Tanggal: ${date}`, 14, subtitle ? 38 : 30);
-
-  // Add table
-  autoTable(doc, {
-    head: [headers],
-    body: data,
-    startY: subtitle ? 45 : 37,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [212, 175, 55], // Gold color
-      textColor: [0, 0, 0],
-      fontStyle: 'bold',
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245],
-    },
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-    },
-  });
-
-  // Add footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(
-      `Halaman ${i} dari ${pageCount} | Renmoku - Premium Car Rental`,
-      14,
-      doc.internal.pageSize.height - 10
-    );
-  }
-
-  // Save PDF
-  doc.save(`${filename}.pdf`);
-};
-
-/**
- * Export booking details to PDF
- */
-export const exportBookingToPDF = (booking: any) => {
+export function exportBookingToPDF(booking: any) {
   const doc = new jsPDF();
-
-  // Header
-  doc.setFontSize(20);
-  doc.setTextColor(212, 175, 55);
-  doc.text('RENMOKU', 14, 20);
   
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text('Invoice Booking', 14, 28);
-
+  // Header - Dark background with gold accent
+  doc.setFillColor(10, 10, 10);
+  doc.rect(0, 0, 210, 40, 'F');
+  
+  doc.setTextColor(212, 175, 55); // Gold
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RENMOKU', 20, 25);
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text('Premium Car Rental', 20, 32);
+  
+  // Title
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(18);
+  doc.text('Invoice Sewa Kendaraan', 20, 60);
+  
   // Booking Info
   doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`No. Booking: ${booking.id}`, 14, 40);
-  doc.text(`Tanggal: ${new Date(booking.createdAt).toLocaleDateString('id-ID')}`, 14, 46);
-  doc.text(`Status: ${booking.status}`, 14, 52);
-
-  // Renter Info
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text('Informasi Penyewa', 14, 65);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Nama: ${booking.renter?.name || '-'}`, 14, 72);
-  doc.text(`Email: ${booking.renter?.email || '-'}`, 14, 78);
-  doc.text(`Telepon: ${booking.renter?.phone || '-'}`, 14, 84);
-
-  // Vehicle Info
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text('Informasi Kendaraan', 14, 97);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Kendaraan: ${booking.vehicle?.brand} ${booking.vehicle?.model}`, 14, 104);
-  doc.text(`Tahun: ${booking.vehicle?.year || '-'}`, 14, 110);
-  doc.text(`Durasi: ${booking.startDate} - ${booking.endDate}`, 14, 116);
-
-  // Payment Info
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text('Informasi Pembayaran', 14, 129);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Total Harga: Rp ${booking.totalPrice?.toLocaleString('id-ID') || '0'}`, 14, 136);
-  doc.text(`DP (50%): Rp ${booking.dpAmount?.toLocaleString('id-ID') || '0'}`, 14, 142);
-  doc.text(`Sisa Pembayaran: Rp ${((booking.totalPrice || 0) - (booking.dpAmount || 0)).toLocaleString('id-ID')}`, 14, 148);
-
+  doc.setTextColor(100, 100, 100);
+  doc.text(`No. Booking: ${booking.id}`, 20, 75);
+  doc.text(`Tanggal: ${new Date(booking.createdAt).toLocaleDateString('id-ID')}`, 20, 82);
+  doc.text(`Status: ${booking.status}`, 20, 89);
+  
+  // Details Table
+  autoTable(doc, {
+    startY: 100,
+    head: [['Item', 'Detail']],
+    body: [
+      ['Kendaraan', `${booking.vehicle?.brand || '-'} ${booking.vehicle?.model || '-'} ${booking.vehicle?.year || ''}`],
+      ['Penyewa', booking.renter?.renterIndividual?.fullName || booking.renter?.renterCorporate?.companyName || booking.renter?.name || '-'],
+      ['Periode Sewa', `${new Date(booking.startDate).toLocaleDateString('id-ID')} - ${new Date(booking.endDate).toLocaleDateString('id-ID')}`],
+      ['Durasi', booking.durationType || '-'],
+      ['Dengan Driver', booking.withDriver ? 'Ya' : 'Tidak'],
+      ['Rute', `${booking.tripOrigin || '-'} → ${booking.tripDestination || '-'}`],
+      ['Jaminan', booking.guaranteeType || '-'],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0] },
+    styles: { fontSize: 10 },
+  });
+  
+  // Payment Summary
+  const finalY = (doc as any).lastAutoTable.finalY + 15;
+  autoTable(doc, {
+    startY: finalY,
+    head: [['Keterangan', 'Jumlah']],
+    body: [
+      ['Total Sewa', `Rp ${(booking.totalPrice || 0).toLocaleString('id-ID')}`],
+      ['DP (50%)', `Rp ${(booking.dpAmount || 0).toLocaleString('id-ID')}`],
+      ['Sisa Pelunasan', `Rp ${((booking.totalPrice || 0) - (booking.dpAmount || 0)).toLocaleString('id-ID')}`],
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0] },
+    styles: { fontSize: 11 },
+    columnStyles: {
+      1: { halign: 'right', fontStyle: 'bold' },
+    },
+  });
+  
   // Footer
+  const pageHeight = doc.internal.pageSize.height;
   doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text('Terima kasih telah menggunakan layanan Renmoku', 14, 280);
-  doc.text('www.renmoku.id', 14, 285);
-
-  doc.save(`booking-${booking.id}.pdf`);
-};
-
-// ============================================================================
-// EXCEL EXPORT UTILITIES
-// ============================================================================
-
-interface ExcelExportOptions {
-  data: any[];
-  filename: string;
-  sheetName?: string;
+  doc.setTextColor(150, 150, 150);
+  doc.text('Dokumen ini dihasilkan secara elektronik dan sah tanpa tanda tangan basah.', 20, pageHeight - 20);
+  doc.text('© 2026 Renmoku. All rights reserved.', 20, pageHeight - 14);
+  
+  // Save
+  doc.save(`Booking-${booking.id}.pdf`);
 }
 
 /**
- * Export data to Excel
+ * Export revenue report to PDF
  */
-export const exportToExcel = (options: ExcelExportOptions) => {
-  const { data, filename, sheetName = 'Data' } = options;
-
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(data);
-
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-  // Auto-size columns
-  const colWidths = Object.keys(data[0] || {}).map((key) => {
-    const maxLen = Math.max(
-      key.length,
-      ...data.map((row) => String(row[key] || '').length)
-    );
-    return { wch: Math.min(maxLen + 2, 50) };
+export function exportRevenueReportPDF(data: {
+  period: string;
+  totalRevenue: number;
+  totalBookings: number;
+  vehicles: Array<{ name: string; revenue: number; bookings: number }>;
+}) {
+  const doc = new jsPDF();
+  
+  // Header
+  doc.setFillColor(10, 10, 10);
+  doc.rect(0, 0, 210, 30, 'F');
+  doc.setTextColor(212, 175, 55);
+  doc.setFontSize(20);
+  doc.text('LAPORAN PENDAPATAN', 20, 20);
+  
+  // Period
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.text(`Periode: ${data.period}`, 20, 45);
+  
+  // Summary
+  autoTable(doc, {
+    startY: 55,
+    head: [['Metrik', 'Nilai']],
+    body: [
+      ['Total Pendapatan', `Rp ${data.totalRevenue.toLocaleString('id-ID')}`],
+      ['Total Booking', data.totalBookings.toString()],
+      ['Rata-rata per Booking', `Rp ${Math.round(data.totalRevenue / data.totalBookings).toLocaleString('id-ID')}`],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0] },
   });
-  worksheet['!cols'] = colWidths;
-
-  // Generate buffer
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: 'xlsx',
-    type: 'array',
+  
+  // Vehicle breakdown
+  const finalY = (doc as any).lastAutoTable.finalY + 15;
+  doc.setFontSize(14);
+  doc.text('Breakdown per Kendaraan', 20, finalY);
+  
+  autoTable(doc, {
+    startY: finalY + 5,
+    head: [['Kendaraan', 'Jumlah Booking', 'Pendapatan (Rp)']],
+    body: data.vehicles.map(v => [
+      v.name,
+      v.bookings.toString(),
+      v.revenue.toLocaleString('id-ID'),
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [139, 92, 246] }, // Purple
+    columnStyles: {
+      1: { halign: 'center' },
+      2: { halign: 'right' },
+    },
   });
+  
+  doc.save(`Revenue-Report-${data.period}.pdf`);
+}
 
-  // Save file
-  const blob = new Blob([excelBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  saveAs(blob, `${filename}.xlsx`);
-};
+// ============================================================================
+// EXCEL EXPORT FUNCTIONS
+// ============================================================================
 
 /**
  * Export bookings to Excel
  */
-export const exportBookingsToExcel = (bookings: any[]) => {
-  const data = bookings.map((booking) => ({
-    'ID Booking': booking.id,
-    'Tanggal': new Date(booking.createdAt).toLocaleDateString('id-ID'),
-    'Penyewa': booking.renter?.name || '-',
-    'Email': booking.renter?.email || '-',
-    'Kendaraan': `${booking.vehicle?.brand} ${booking.vehicle?.model}`,
-    'Mulai': booking.startDate,
-    'Selesai': booking.endDate,
-    'Durasi': `${booking.durationType}`,
-    'Dengan Driver': booking.withDriver ? 'Ya' : 'Tidak',
-    'Total': booking.totalPrice,
-    'DP': booking.dpAmount,
-    'Status': booking.status,
+export function exportBookingsToExcel(bookings: any[], filename = 'bookings') {
+  // Transform data
+  const data = bookings.map((b) => ({
+    'ID Booking': b.id,
+    'Tanggal Booking': new Date(b.createdAt).toLocaleDateString('id-ID'),
+    'Kendaraan': `${b.vehicle?.brand || '-'} ${b.vehicle?.model || '-'}`,
+    'Tahun': b.vehicle?.year || '-',
+    'Penyewa': b.renter?.renterIndividual?.fullName || b.renter?.renterCorporate?.companyName || b.renter?.name || '-',
+    'Tipe Penyewa': b.renter?.renterIndividual ? 'Individual' : 'Corporate',
+    'Mulai': new Date(b.startDate).toLocaleDateString('id-ID'),
+    'Selesai': new Date(b.endDate).toLocaleDateString('id-ID'),
+    'Durasi': b.durationType || '-',
+    'Dengan Driver': b.withDriver ? 'Ya' : 'Tidak',
+    'Total (Rp)': b.totalPrice || 0,
+    'DP (Rp)': b.dpAmount || 0,
+    'Status': b.status || '-',
   }));
-
-  exportToExcel({
-    data,
-    filename: `bookings-${new Date().toISOString().split('T')[0]}`,
-    sheetName: 'Bookings',
+  
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 20 }, // ID
+    { wch: 15 }, // Tanggal
+    { wch: 25 }, // Kendaraan
+    { wch: 8 },  // Tahun
+    { wch: 25 }, // Penyewa
+    { wch: 15 }, // Tipe
+    { wch: 15 }, // Mulai
+    { wch: 15 }, // Selesai
+    { wch: 12 }, // Durasi
+    { wch: 12 }, // Driver
+    { wch: 15 }, // Total
+    { wch: 15 }, // DP
+    { wch: 12 }, // Status
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Bookings');
+  
+  // Export
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
   });
-};
+  saveAs(blob, `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 
 /**
  * Export vehicles to Excel
  */
-export const exportVehiclesToExcel = (vehicles: any[]) => {
-  const data = vehicles.map((vehicle) => ({
-    'ID': vehicle.id,
-    'Brand': vehicle.brand,
-    'Model': vehicle.model,
-    'Tahun': vehicle.year,
-    'Transmisi': vehicle.transmission,
-    'Kapasitas': vehicle.capacity,
-    'BBM': vehicle.fuelType,
-    'Harga/Hari': vehicle.priceDaily,
-    'Harga/Minggu': vehicle.priceWeekly,
-    'Harga/Bulan': vehicle.priceMonthly,
-    'Status': vehicle.status,
-    'Lokasi': vehicle.location,
+export function exportVehiclesToExcel(vehicles: any[], filename = 'vehicles') {
+  const data = vehicles.map((v) => ({
+    'ID': v.id,
+    'Brand': v.brand,
+    'Model': v.model,
+    'Tahun': v.year,
+    'Transmisi': v.transmission === 'automatic' ? 'Otomatis' : 'Manual',
+    'Kapasitas': v.capacity,
+    'BBM': v.fuelType,
+    'Harga/Hari (Rp)': v.priceDaily,
+    'Harga/Minggu (Rp)': v.priceWeekly,
+    'Harga/Bulan (Rp)': v.priceMonthly,
+    'Status': v.status,
+    'Lokasi': v.location,
   }));
-
-  exportToExcel({
-    data,
-    filename: `vehicles-${new Date().toISOString().split('T')[0]}`,
-    sheetName: 'Vehicles',
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  
+  ws['!cols'] = [
+    { wch: 20 }, // ID
+    { wch: 15 }, // Brand
+    { wch: 20 }, // Model
+    { wch: 8 },  // Tahun
+    { wch: 12 }, // Transmisi
+    { wch: 10 }, // Kapasitas
+    { wch: 10 }, // BBM
+    { wch: 15 }, // Harga/Hari
+    { wch: 15 }, // Harga/Minggu
+    { wch: 15 }, // Harga/Bulan
+    { wch: 12 }, // Status
+    { wch: 15 }, // Lokasi
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Vehicles');
+  
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
   });
-};
-
-// ============================================================================
-// CSV EXPORT UTILITIES
-// ============================================================================
-
-interface CSVExportOptions {
-  data: any[];
-  filename: string;
+  saveAs(blob, `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`);
 }
+
+/**
+ * Export users to Excel
+ */
+export function exportUsersToExcel(users: any[], filename = 'users') {
+  const data = users.map((u) => ({
+    'ID': u.id,
+    'Email': u.email,
+    'Nama': u.name,
+    'Role': u.role === 'RENTER' ? 'Penyewa' : u.role === 'OWNER' ? 'Pemilik' : 'Admin',
+    'Status': u.status === 'VERIFIED' ? 'Terverifikasi' : u.status === 'PENDING' ? 'Pending' : 'Ditolak',
+    'Tanggal Daftar': new Date(u.createdAt).toLocaleDateString('id-ID'),
+  }));
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  
+  ws['!cols'] = [
+    { wch: 20 }, // ID
+    { wch: 25 }, // Email
+    { wch: 25 }, // Nama
+    { wch: 12 }, // Role
+    { wch: 15 }, // Status
+    { wch: 15 }, // Tanggal Daftar
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Users');
+  
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  });
+  saveAs(blob, `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ============================================================================
+// CSV EXPORT FUNCTIONS
+// ============================================================================
 
 /**
  * Export data to CSV
  */
-export const exportToCSV = (options: CSVExportOptions) => {
-  const { data, filename } = options;
-
+export function exportToCSV(data: any[], filename: string) {
   if (data.length === 0) {
     console.warn('No data to export');
     return;
   }
 
-  // Get headers
   const headers = Object.keys(data[0]);
-
-  // Create CSV content
   const csvContent = [
     headers.join(','),
     ...data.map((row) =>
       headers.map((header) => {
         const value = row[header];
-        // Escape quotes and wrap in quotes if contains comma
         const stringValue = String(value || '');
         if (stringValue.includes(',') || stringValue.includes('"')) {
           return `"${stringValue.replace(/"/g, '""')}"`;
@@ -288,170 +309,6 @@ export const exportToCSV = (options: CSVExportOptions) => {
     ),
   ].join('\n');
 
-  // Create blob and save
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  saveAs(blob, `${filename}.csv`);
-};
-
-/**
- * Export users to CSV
- */
-export const exportUsersToCSV = (users: any[]) => {
-  const data = users.map((user) => ({
-    ID: user.id,
-    Email: user.email,
-    Nama: user.name,
-    Role: user.role,
-    Status: user.status,
-    'Tanggal Daftar': new Date(user.createdAt).toLocaleDateString('id-ID'),
-  }));
-
-  exportToCSV({
-    data,
-    filename: `users-${new Date().toISOString().split('T')[0]}`,
-  });
-};
-
-// ============================================================================
-// REVENUE REPORT EXPORT
-// ============================================================================
-
-/**
- * Export revenue report to PDF
- */
-export const exportRevenueReportToPDF = (report: any) => {
-  const doc = new jsPDF();
-
-  // Header
-  doc.setFontSize(20);
-  doc.setTextColor(212, 175, 55);
-  doc.text('RENMOKU', 14, 20);
-  
-  doc.setFontSize(14);
-  doc.setTextColor(40);
-  doc.text('Laporan Pendapatan', 14, 28);
-
-  // Period
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Periode: ${report.period}`, 14, 36);
-  doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 42);
-
-  // Summary
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text('Ringkasan', 14, 55);
-
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Total Pendapatan: Rp ${report.totalRevenue?.toLocaleString('id-ID') || '0'}`, 14, 62);
-  doc.text(`Total Booking: ${report.totalBookings || 0}`, 14, 68);
-  doc.text(`Komisi Platform: Rp ${report.totalCommission?.toLocaleString('id-ID') || '0'}`, 14, 74);
-  doc.text(`Rata-rata per Booking: Rp ${report.averageBookingValue?.toLocaleString('id-ID') || '0'}`, 14, 80);
-  doc.text(`Pertumbuhan: ${report.growthRate || 0}%`, 14, 86);
-
-  // Breakdown table
-  if (report.breakdown && report.breakdown.length > 0) {
-    doc.setFontSize(12);
-    doc.setTextColor(40);
-    doc.text('Detail Harian', 14, 100);
-
-    autoTable(doc, {
-      head: [['Tanggal', 'Pendapatan', 'Jumlah Booking']],
-      body: report.breakdown.map((item: any) => [
-        item.date,
-        `Rp ${item.revenue?.toLocaleString('id-ID') || '0'}`,
-        item.bookings || 0,
-      ]),
-      startY: 107,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [212, 175, 55],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-      },
-    });
-  }
-
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text('Renmoku - Premium Car Rental Platform', 14, 280);
-
-  doc.save(`revenue-report-${new Date().toISOString().split('T')[0]}.pdf`);
-};
-
-/**
- * Export revenue report to Excel
- */
-export const exportRevenueReportToExcel = (report: any) => {
-  // Summary sheet
-  const summaryData = [
-    { Metric: 'Total Pendapatan', Value: `Rp ${report.totalRevenue?.toLocaleString('id-ID') || '0'}` },
-    { Metric: 'Total Booking', Value: report.totalBookings || 0 },
-    { Metric: 'Komisi Platform', Value: `Rp ${report.totalCommission?.toLocaleString('id-ID') || '0'}` },
-    { Metric: 'Rata-rata per Booking', Value: `Rp ${report.averageBookingValue?.toLocaleString('id-ID') || '0'}` },
-    { Metric: 'Pertumbuhan', Value: `${report.growthRate || 0}%` },
-  ];
-
-  // Breakdown sheet
-  const breakdownData = report.breakdown?.map((item: any) => ({
-    Tanggal: item.date,
-    Pendapatan: item.revenue,
-    'Jumlah Booking': item.bookings,
-  })) || [];
-
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-  
-  // Add summary sheet
-  const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan');
-
-  // Add breakdown sheet
-  if (breakdownData.length > 0) {
-    const breakdownSheet = XLSX.utils.json_to_sheet(breakdownData);
-    XLSX.utils.book_append_sheet(workbook, breakdownSheet, 'Detail Harian');
-  }
-
-  // Save
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: 'xlsx',
-    type: 'array',
-  });
-
-  const blob = new Blob([excelBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  saveAs(blob, `revenue-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-};
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Format currency for export
- */
-export const formatCurrencyForExport = (amount: number): string => {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
-};
-
-/**
- * Format date for export
- */
-export const formatDateForExport = (date: string | Date): string => {
-  return new Date(date).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
-
-/**
- * Generate filename with timestamp
- */
-export const generateFilename = (prefix: string, extension: string): string => {
-  const timestamp = new Date().toISOString().split('T')[0];
-  return `${prefix}-${timestamp}.${extension}`;
-};
+  saveAs(blob, `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
+}
