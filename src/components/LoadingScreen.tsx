@@ -68,7 +68,7 @@ export default function LoadingScreen({ onComplete }: { onComplete: () => void }
           transition={{ delay: 0.3, duration: 0.6 }}
           className="font-[Playfair_Display] text-4xl font-bold text-gold-gradient mb-2"
         >
-          LUXDRIVE
+          RENMOKU
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -76,7 +76,7 @@ export default function LoadingScreen({ onComplete }: { onComplete: () => void }
           transition={{ delay: 0.6 }}
           className="text-gray-500 text-sm tracking-[0.3em] uppercase"
         >
-          Premium Car Rental
+          Premium Car Rental Experience
         </motion.p>
 
         {/* Progress bar */}

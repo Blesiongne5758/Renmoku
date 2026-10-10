@@ -43,7 +43,7 @@ export default function DashboardPage() {
                 onClick={() => setCurrentUser({
                   id: 'u1',
                   name: option.role === 'owner' ? 'Budi Santoso Fleet' : 'Ahmad Wijaya',
-                  email: 'user@luxdrive.id',
+                  email: 'user@renmoku.id',
                   role: option.role,
                 })}
                 className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-gold-500/20 transition-all text-left"

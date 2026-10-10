@@ -31,7 +31,7 @@ export default function Navbar() {
               <Car className="w-6 h-6 text-luxury-900" />
             </div>
             <span className="font-[Playfair_Display] text-xl font-bold text-gold-gradient">
-              LUXDRIVE
+              RENMOKU
             </span>
           </motion.div>
 

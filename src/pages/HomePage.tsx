@@ -124,7 +124,7 @@ export default function HomePage() {
             className="text-center mb-12"
           >
             <h2 className="font-[Playfair_Display] text-2xl sm:text-4xl font-bold text-white mb-3">
-              Mengapa <span className="text-gold-gradient">LUXDRIVE</span>?
+              Mengapa <span className="text-gold-gradient">Renmoku</span>?
             </h2>
             <p className="text-gray-400 max-w-lg mx-auto">
               Layanan premium dengan standar tertinggi untuk kenyamanan perjalanan Anda
@@ -251,7 +251,7 @@ export default function HomePage() {
               </h2>
               <p className="text-gray-400 max-w-lg mx-auto mb-8">
                 Bergabunglah dengan ribuan pelanggan puas yang telah mempercayakan
-                perjalanan mereka kepada LUXDRIVE
+                perjalanan mereka kepada Renmoku
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <motion.button
@@ -294,7 +294,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center">
                   <Car className="w-5 h-5 text-luxury-900" />
                 </div>
-                <span className="font-[Playfair_Display] text-lg font-bold text-gold-gradient">LUXDRIVE</span>
+                <span className="font-[Playfair_Display] text-lg font-bold text-gold-gradient">RENMOKU</span>
               </div>
               <p className="text-gray-500 text-sm leading-relaxed">
                 Platform rental kendaraan premium terpercaya di Indonesia.
@@ -327,7 +327,7 @@ export default function HomePage() {
           </div>
           <div className="pt-8 border-t border-white/5 text-center">
             <p className="text-gray-600 text-sm">
-              © 2025 LUXDRIVE. All rights reserved. Premium Car Rental Experience.
+              © 2025 Renmoku. All rights reserved. Premium Car Rental Experience.
             </p>
           </div>
         </div>
