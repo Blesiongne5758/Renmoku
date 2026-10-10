@@ -13,6 +13,13 @@ interface Props {
 // Background garasi mewah - menggunakan URL dari generated image
 const GARAGE_BG = 'https://images.unsplash.com/photo-1616422285623-13ff0899e974?w=1600&q=80';
 
+// Alternative garage backgrounds for variety
+const GARAGE_BACKGROUNDS = [
+  'https://images.unsplash.com/photo-1616422285623-13ff0899e974?w=1600&q=80',
+  'https://images.unsplash.com/photo-1573348722427-f1d1e03d1f98?w=1600&q=80',
+  'https://images.unsplash.com/photo-1562141961-b5d1fe8a3e4c?w=1600&q=80',
+];
+
 export default function Vehicle360Viewer({ vehicle, autoRotate = true, showControls = true, className = '' }: Props) {
   const [rotation, setRotation] = useState(0);
   const [isAutoRotating, setIsAutoRotating] = useState(autoRotate);

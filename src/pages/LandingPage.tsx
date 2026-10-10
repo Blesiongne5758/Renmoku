@@ -5,6 +5,7 @@ import {
   MapPin, CreditCard, FileText, Search
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import VehicleShowcase from '../components/VehicleShowcase';
 
 export default function LandingPage() {
   const { setCurrentPage, setAuthMode } = useAppStore();
@@ -261,6 +262,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Vehicle Showcase - 360° View */}
+      <VehicleShowcase />
 
       {/* For Owners Section */}
       <section className="py-24 px-4 sm:px-6 lg:px-8">
