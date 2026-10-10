@@ -2,76 +2,78 @@
 
 import { motion } from 'framer-motion';
 
-interface FleetStatusProps {
-  available?: number;
-  rented?: number;
-  maintenance?: number;
-  inactive?: number;
-}
+const fleetData = [
+  { status: 'Available', count: 12, color: '#10B981', percentage: 60 },
+  { status: 'Rented', count: 8, color: '#D4AF37', percentage: 40 },
+  { status: 'Maintenance', count: 3, color: '#F59E0B', percentage: 15 },
+  { status: 'Inactive', count: 2, color: '#666', percentage: 10 },
+];
 
-export default function FleetStatus({ 
-  available = 12, 
-  rented = 8, 
-  maintenance = 3, 
-  inactive = 2 
-}: FleetStatusProps) {
-  const total = available + rented + maintenance + inactive;
-  const occupancyRate = Math.round(((rented + maintenance) / total) * 100);
-
-  const statusItems = [
-    { label: 'Available', count: available, color: 'from-green-400 to-green-600', dot: 'bg-green-400' },
-    { label: 'Rented', count: rented, color: 'from-blue-400 to-blue-600', dot: 'bg-blue-400' },
-    { label: 'Maintenance', count: maintenance, color: 'from-yellow-400 to-yellow-600', dot: 'bg-yellow-400' },
-    { label: 'Inactive', count: inactive, color: 'from-gray-400 to-gray-600', dot: 'bg-gray-400' },
-  ];
-
+export default function FleetStatus() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5 }}
-      className="relative p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-700/5 border border-purple-500/30 backdrop-blur-xl overflow-hidden"
+      className="p-6 rounded-2xl bg-[#141414] border border-white/5 h-full"
     >
-      {/* Background Glow */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-700/5 blur-3xl opacity-50" />
-      
-      <div className="relative">
-        <h3 className="text-lg font-semibold text-white mb-6">🚗 Status Armada</h3>
+      <h3 className="font-serif text-xl mb-2">🚗 Status Armada</h3>
+      <p className="text-sm text-gray-500 mb-6">Distribusi kondisi kendaraan</p>
 
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Okupansi</span>
-            <span className="text-sm text-purple-400 font-bold">{occupancyRate}%</span>
-          </div>
-          <div className="h-3 rounded-full bg-black/40 overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${occupancyRate}%` }}
-              transition={{ duration: 1, delay: 0.6 }}
-              className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full"
-            />
-          </div>
-        </div>
+      {/* Circular Progress */}
+      <div className="relative w-40 h-40 mx-auto mb-6">
+        <svg className="w-full h-full -rotate-90">
+          <circle
+            cx="80"
+            cy="80"
+            r="60"
+            stroke="#1a1a1a"
+            strokeWidth="16"
+            fill="none"
+          />
+          {fleetData.map((item, idx) => {
+            const totalPercentage = fleetData.slice(0, idx).reduce((sum, i) => sum + i.percentage, 0);
+            const circumference = 2 * Math.PI * 60;
+            const strokeLength = (item.percentage / 100) * circumference;
+            const strokeOffset = (totalPercentage / 100) * circumference;
 
-        {/* Status List */}
-        <div className="space-y-3">
-          {statusItems.map((status, i) => (
-            <motion.div
-              key={status.label}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 + i * 0.1 }}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${status.dot}`} />
-                <span className="text-sm text-gray-300">{status.label}</span>
-              </div>
-              <span className="text-sm text-white font-medium">{status.count}</span>
-            </motion.div>
-          ))}
+            return (
+              <motion.circle
+                key={item.status}
+                cx="80"
+                cy="80"
+                r="60"
+                stroke={item.color}
+                strokeWidth="16"
+                fill="none"
+                strokeDasharray={`${strokeLength} ${circumference}`}
+                strokeDashoffset={-strokeOffset}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: strokeLength }}
+                transition={{ duration: 1, delay: idx * 0.2 }}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-bold font-mono">20</span>
+          <span className="text-xs text-gray-500">Total Armada</span>
         </div>
+      </div>
+
+      {/* Legend */}
+      <div className="space-y-3">
+        {fleetData.map((item) => (
+          <div key={item.status} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: item.color, boxShadow: `0 0 8px ${item.color}` }}
+              />
+              <span className="text-sm text-gray-300">{item.status}</span>
+            </div>
+            <span className="text-sm font-mono font-semibold">{item.count}</span>
+          </div>
+        ))}
       </div>
     </motion.div>
   );
