@@ -2,12 +2,12 @@ import { motion } from 'framer-motion';
 import {
   Car, Shield, Clock, Award, Users, Star,
   ArrowRight, CheckCircle2, Sparkles, Crown,
-  MapPin, Calendar, CreditCard, FileText, Search
+  MapPin, CreditCard, FileText, Search
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 
 export default function LandingPage() {
-  const { setCurrentPage, setAuthModalOpen, setAuthMode } = useAppStore();
+  const { setCurrentPage, setAuthMode } = useAppStore();
 
   const handleGetStarted = () => {
     setAuthMode('register');
@@ -20,156 +20,143 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-luxury">
+      {/* Hero Section - Minimal & Focused */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {/* Background */}
+        {/* Atmospheric Background */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-luxury-900 via-luxury-800 to-luxury-900" />
-          <div className="absolute inset-0 bg-radial-gold" />
-          
-          {/* Animated grid */}
-          <motion.div
-            animate={{ opacity: [0.03, 0.06, 0.03] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `linear-gradient(rgba(212,168,83,0.1) 1px, transparent 1px),
-                               linear-gradient(90deg, rgba(212,168,83,0.1) 1px, transparent 1px)`,
-              backgroundSize: '60px 60px',
-            }}
-          />
-
-          {/* Floating particles */}
-          {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 100 }}
-              animate={{
-                opacity: [0, 1, 0],
-                y: [100, -100],
-                x: [0, Math.sin(i) * 50],
-              }}
-              transition={{
-                duration: 3 + i * 0.5,
-                repeat: Infinity,
-                delay: i * 0.3,
-                ease: 'easeInOut',
-              }}
-              className="absolute w-1 h-1 rounded-full bg-gold-500/30"
-              style={{
-                left: `${(i * 5) % 100}%`,
-                top: `${(i * 7) % 100}%`,
-              }}
-            />
-          ))}
+          <div className="absolute inset-0 bg-radial-gold opacity-60" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold-500/3 rounded-full blur-3xl" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-light border border-gold-500/20 mb-8"
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-light border border-gold-500/10 mb-8"
           >
-            <span className="w-2 h-2 rounded-full bg-gold-400 animate-pulse" />
-            <span className="text-xs sm:text-sm text-gold-300 font-medium tracking-wide">
-              PREMIUM CAR RENTAL PLATFORM
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse-soft" />
+            <span className="text-xs text-gold-300/80 font-medium tracking-wider uppercase">
+              Premium Car Rental
             </span>
           </motion.div>
 
-          {/* Heading */}
+          {/* Heading - Clean Typography */}
           <motion.h1
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="font-[Playfair_Display] text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6"
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="font-[Playfair_Display] text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 tracking-tight-custom"
           >
             <span className="block text-white">Sewa Mobil</span>
-            <span className="block text-gold-gradient">Premium</span>
-            <span className="block text-white">Tanpa Ribet</span>
+            <span className="block text-gold-gradient mt-2">Premium</span>
+            <span className="block text-white/90 mt-2 text-4xl sm:text-5xl lg:text-6xl font-medium">
+              Tanpa Ribet
+            </span>
           </motion.h1>
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="text-gray-400 text-base sm:text-lg lg:text-xl max-w-2xl mx-auto mb-10 font-light leading-relaxed"
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             Platform rental mobil terpercaya dengan koleksi kendaraan mewah.
-            Proses mudah, harga transparan, dan layanan profesional 24/7.
+            Proses mudah, harga transparan, layanan profesional.
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(212,168,83,0.3)' }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleGetStarted}
-              className="btn-luxury text-base px-8 py-4 flex items-center gap-2"
+              className="btn-luxury text-base px-8 py-4 flex items-center gap-2 group"
             >
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
               Daftar Sekarang
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleLogin}
-              className="px-8 py-4 rounded-lg border border-gold-500/30 text-gold-300 font-medium hover:bg-gold-500/5 transition-all"
+              className="btn-ghost text-base px-8 py-4"
             >
-              Sudah Punya Akun? Masuk
+              Sudah Punya Akun?
             </motion.button>
           </motion.div>
 
-          {/* Stats */}
+          {/* Stats - Neumorphic Cards */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
           >
             {[
-              { icon: Car, label: 'Armada Aktif', value: '500+' },
-              { icon: Users, label: 'Pelanggan Puas', value: '2,500+' },
+              { icon: Car, label: 'Armada', value: '500+' },
+              { icon: Users, label: 'Pelanggan', value: '2,500+' },
               { icon: Star, label: 'Rating', value: '4.9/5' },
               { icon: MapPin, label: 'Kota', value: '15+' },
             ].map((stat, i) => (
               <motion.div
                 key={i}
-                whileHover={{ scale: 1.05, borderColor: 'rgba(212,168,83,0.3)' }}
-                className="glass-light rounded-xl p-4 text-center border border-transparent transition-all"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 + i * 0.1 }}
+                whileHover={{ y: -4, scale: 1.02 }}
+                className="neu-raised rounded-2xl p-5 text-center"
               >
                 <stat.icon className="w-5 h-5 text-gold-400 mx-auto mb-2" />
-                <p className="text-white font-bold text-lg">{stat.value}</p>
-                <p className="text-gray-400 text-xs">{stat.label}</p>
+                <p className="text-white font-bold text-xl mb-0.5">{stat.value}</p>
+                <p className="text-gray-500 text-xs">{stat.label}</p>
               </motion.div>
             ))}
           </motion.div>
         </div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex flex-col items-center gap-2"
+          >
+            <span className="text-[10px] text-gray-600 tracking-widest uppercase">Scroll</span>
+            <div className="w-px h-8 bg-gradient-to-b from-gold-500/30 to-transparent" />
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-7xl mx-auto">
+      {/* Features Section - Clean Grid */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4">
-              Mengapa Memilih <span className="text-gold-gradient">Renmoku</span>?
+            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
+              Mengapa <span className="text-gold-gradient">Renmoku</span>?
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Kami menyediakan layanan rental mobil terbaik dengan standar premium
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Layanan premium dengan standar tertinggi
             </p>
           </motion.div>
 
@@ -178,65 +165,47 @@ export default function LandingPage() {
               {
                 icon: Shield,
                 title: 'Asuransi Lengkap',
-                desc: 'Semua kendaraan dilengkapi asuransi all-risk untuk ketenangan Anda',
-                color: 'emerald',
+                desc: 'Semua kendaraan dilengkapi asuransi all-risk',
               },
               {
                 icon: Clock,
                 title: 'Proses Cepat',
-                desc: 'Booking online, verifikasi dokumen, dan pick-up dalam hitungan jam',
-                color: 'blue',
+                desc: 'Booking online, verifikasi dalam hitungan jam',
               },
               {
                 icon: Award,
                 title: 'Kendaraan Premium',
-                desc: 'Hanya kendaraan terbaik dan terawat yang masuk dalam armada kami',
-                color: 'gold',
+                desc: 'Hanya kendaraan terbaik dan terawat',
               },
               {
                 icon: Users,
                 title: 'Driver Profesional',
-                desc: 'Driver berpengalaman, ramah, dan mengenal rute dengan baik',
-                color: 'purple',
+                desc: 'Driver berpengalaman dan ramah',
               },
               {
                 icon: CreditCard,
                 title: 'Pembayaran Fleksibel',
-                desc: 'DP 30-50%, pelunasan saat pick-up. Berbagai metode pembayaran',
-                color: 'pink',
+                desc: 'DP 30-50%, pelunasan saat pick-up',
               },
               {
                 icon: FileText,
                 title: 'E-Contract Digital',
-                desc: 'Kontrak digital yang aman dan transparan dengan tanda tangan elektronik',
-                color: 'cyan',
+                desc: 'Kontrak digital yang aman dan transparan',
               },
             ].map((feature, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.6 }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="glass rounded-2xl p-6 border border-white/5 hover:border-gold-500/20 transition-all group"
+                transition={{ delay: i * 0.08 }}
+                whileHover={{ y: -6 }}
+                className="card-luxury p-6 group"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                  feature.color === 'emerald' ? 'bg-emerald-500/10' :
-                  feature.color === 'blue' ? 'bg-blue-500/10' :
-                  feature.color === 'gold' ? 'bg-gold-500/10' :
-                  feature.color === 'purple' ? 'bg-purple-500/10' :
-                  feature.color === 'pink' ? 'bg-pink-500/10' : 'bg-cyan-500/10'
-                }`}>
-                  <feature.icon className={`w-6 h-6 ${
-                    feature.color === 'emerald' ? 'text-emerald-400' :
-                    feature.color === 'blue' ? 'text-blue-400' :
-                    feature.color === 'gold' ? 'text-gold-400' :
-                    feature.color === 'purple' ? 'text-purple-400' :
-                    feature.color === 'pink' ? 'text-pink-400' : 'text-cyan-400'
-                  } group-hover:scale-110 transition-transform`} />
+                <div className="w-12 h-12 rounded-xl neu-gold flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <feature.icon className="w-6 h-6 text-gold-400" />
                 </div>
-                <h3 className="text-white font-semibold mb-2">{feature.title}</h3>
+                <h3 className="text-white font-semibold text-lg mb-2">{feature.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
@@ -244,46 +213,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-luxury-800/30">
-        <div className="max-w-5xl mx-auto">
+      {/* How It Works - Minimal Steps */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 relative">
+        <div className="absolute inset-0 bg-radial-gold opacity-30" />
+        <div className="max-w-5xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4">
+            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Cara <span className="text-gold-gradient">Mudah</span> Menyewa
             </h2>
-            <p className="text-gray-400">Hanya 4 langkah untuk mendapatkan kendaraan impian Anda</p>
+            <p className="text-gray-500">Hanya 4 langkah sederhana</p>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { step: '01', icon: Search, title: 'Pilih Kendaraan', desc: 'Jelajahi armada dan pilih yang sesuai kebutuhan' },
-              { step: '02', icon: FileText, title: 'Upload Dokumen', desc: 'Upload KTP, SIM, dan dokumen persyaratan' },
-              { step: '03', icon: CreditCard, title: 'Bayar DP', desc: 'Konfirmasi booking dengan pembayaran DP 30%' },
-              { step: '04', icon: Car, title: 'Nikmati Perjalanan', desc: 'Pick-up kendaraan dan mulai perjalanan' },
+              { step: '01', icon: Search, title: 'Pilih Kendaraan', desc: 'Jelajahi armada kami' },
+              { step: '02', icon: FileText, title: 'Upload Dokumen', desc: 'KTP, SIM, dan persyaratan' },
+              { step: '03', icon: CreditCard, title: 'Bayar DP', desc: 'Konfirmasi dengan DP 30%' },
+              { step: '04', icon: Car, title: 'Nikmati Perjalanan', desc: 'Pick-up dan mulai perjalanan' },
             ].map((item, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative text-center"
+                transition={{ delay: i * 0.1 }}
+                className="relative"
               >
-                <div className="relative inline-block mb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gold-500/20 to-gold-600/5 border border-gold-500/20 flex items-center justify-center">
-                    <item.icon className="w-7 h-7 text-gold-400" />
+                <div className="neu-raised rounded-2xl p-6 text-center h-full">
+                  <div className="relative inline-block mb-4">
+                    <div className="w-14 h-14 rounded-2xl neu-gold flex items-center justify-center">
+                      <item.icon className="w-6 h-6 text-gold-400" />
+                    </div>
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 text-luxury-900 text-xs font-bold flex items-center justify-center shadow-lg">
+                      {item.step}
+                    </span>
                   </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gold-500 text-luxury-900 text-xs font-bold flex items-center justify-center">
-                    {item.step}
-                  </span>
+                  <h3 className="text-white font-semibold mb-2">{item.title}</h3>
+                  <p className="text-gray-500 text-sm">{item.desc}</p>
                 </div>
-                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -291,7 +263,7 @@ export default function LandingPage() {
       </section>
 
       {/* For Owners Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -299,16 +271,15 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 mb-4">
-                <Crown className="w-4 h-4 text-gold-400" />
-                <span className="text-xs text-gold-300 font-medium">UNTUK PEMILIK RENTAL</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full badge-gold mb-4">
+                <Crown className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">UNTUK PEMILIK RENTAL</span>
               </div>
-              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4">
+              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
                 Kelola Armada <span className="text-gold-gradient">Lebih Mudah</span>
               </h2>
-              <p className="text-gray-400 mb-6 leading-relaxed">
-                Daftarkan kendaraan Anda dan dapatkan penghasilan tambahan. 
-                Kami menyediakan platform lengkap untuk manajemen rental mobil.
+              <p className="text-gray-500 mb-6 leading-relaxed">
+                Daftarkan kendaraan Anda dan dapatkan penghasilan tambahan dengan platform lengkap.
               </p>
 
               <div className="space-y-3 mb-8">
@@ -317,24 +288,30 @@ export default function LandingPage() {
                   'Kalender booking real-time',
                   'Pengaturan DP fleksibel (20-50%)',
                   'Laporan pendapatan detail',
-                  'Verifikasi penyewa otomatis',
-                  'Support 24/7 untuk owner',
+                  'Virtual 360° showcase',
                 ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
                     <CheckCircle2 className="w-5 h-5 text-gold-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-300 text-sm">{item}</span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
 
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleGetStarted}
-                className="btn-luxury flex items-center gap-2"
+                className="btn-luxury flex items-center gap-2 group"
               >
                 Daftar Sebagai Owner
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </motion.button>
             </motion.div>
 
@@ -344,40 +321,46 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="relative"
             >
-              <div className="glass rounded-2xl p-6 border border-gold-500/10">
-                <div className="flex items-center justify-between mb-4">
+              <div className="card-luxury p-6">
+                <div className="flex items-center justify-between mb-5">
                   <h3 className="text-white font-semibold">Dashboard Owner</h3>
-                  <span className="px-2 py-1 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="badge-gold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
                     Live
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                  <div className="neu-pressed rounded-xl p-4">
                     <p className="text-xs text-gray-500 mb-1">Total Armada</p>
-                    <p className="text-white font-bold text-xl">12</p>
+                    <p className="text-white font-bold text-2xl">12</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                  <div className="neu-pressed rounded-xl p-4">
                     <p className="text-xs text-gray-500 mb-1">Booking Aktif</p>
-                    <p className="text-gold-400 font-bold text-xl">4</p>
+                    <p className="text-gold-400 font-bold text-2xl">4</p>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 mb-4">
+                <div className="neu-pressed rounded-xl p-4 mb-4">
                   <p className="text-xs text-gray-500 mb-2">Pendapatan Bulan Ini</p>
-                  <p className="text-gold-gradient font-bold text-2xl">Rp 45.5jt</p>
+                  <p className="text-gold-gradient font-bold text-3xl">Rp 45.5jt</p>
                   <p className="text-xs text-emerald-400 mt-1">+15% dari bulan lalu</p>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-500 mb-2">Pengaturan DP:</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full w-[30%] bg-gradient-to-r from-gold-500 to-gold-600 rounded-full" />
+                <div className="neu-soft rounded-xl p-4">
+                  <p className="text-xs text-gray-500 mb-3">Pengaturan DP</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 rounded-full bg-luxury-900 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: '30%' }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
+                      />
                     </div>
-                    <span className="text-sm text-gold-400 font-medium">30%</span>
+                    <span className="text-sm text-gold-400 font-semibold">30%</span>
                   </div>
-                  <p className="text-xs text-gray-600">Default: 30% | Range: 20-50%</p>
                 </div>
               </div>
             </motion.div>
@@ -385,101 +368,52 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+      {/* CTA Section - Minimal */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative glass rounded-3xl p-8 sm:p-12 text-center border border-gold-500/10 overflow-hidden"
+            className="card-luxury p-10 sm:p-12 text-center relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-radial-gold" />
+            <div className="absolute inset-0 bg-radial-gold opacity-40" />
             
             <div className="relative z-10">
-              <Sparkles className="w-12 h-12 text-gold-400 mx-auto mb-4" />
-              <h2 className="font-[Playfair_Display] text-2xl sm:text-4xl font-bold text-white mb-4">
-                Siap Bergabung dengan Renmoku?
+              <Sparkles className="w-10 h-10 text-gold-400 mx-auto mb-4" />
+              <h2 className="font-[Playfair_Display] text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight-custom">
+                Siap Bergabung?
               </h2>
-              <p className="text-gray-400 max-w-lg mx-auto mb-8">
-                Bergabunglah dengan ribuan pelanggan dan owner yang telah mempercayakan
-                kebutuhan rental mobil mereka kepada Renmoku
+              <p className="text-gray-500 max-w-md mx-auto mb-8">
+                Bergabunglah dengan ribuan pengguna yang telah mempercayakan kebutuhan rental mobil mereka
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleGetStarted}
-                  className="btn-luxury text-base px-8 py-4"
-                >
-                  Daftar Sekarang - Gratis
-                </motion.button>
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 border-2 border-luxury-900 flex items-center justify-center text-xs font-bold text-luxury-900">
-                        {String.fromCharCode(64 + i)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Star key={i} className="w-3 h-3 text-gold-400 fill-gold-400" />
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500">2,500+ pengguna aktif</p>
-                  </div>
-                </div>
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGetStarted}
+                className="btn-luxury text-base px-8 py-4"
+              >
+                Daftar Sekarang - Gratis
+              </motion.button>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-white/5">
+      {/* Footer - Minimal */}
+      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-white/[0.03]">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center">
-                  <Car className="w-5 h-5 text-luxury-900" />
-                </div>
-                <span className="font-[Playfair_Display] text-lg font-bold text-gold-gradient">RENMOKU</span>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg neu-gold flex items-center justify-center">
+                <Car className="w-4 h-4 text-gold-400" />
               </div>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Platform rental kendaraan premium terpercaya di Indonesia.
-              </p>
+              <span className="font-[Playfair_Display] text-lg font-semibold text-gold-gradient-soft">
+                RENMOKU
+              </span>
             </div>
-            <div>
-              <h4 className="text-white font-semibold mb-3">Layanan</h4>
-              <ul className="space-y-2">
-                {['Sewa Harian', 'Sewa Mingguan', 'Sewa Bulanan', 'Dengan Driver', 'Lepas Kunci'].map((item) => (
-                  <li key={item}><span className="text-gray-500 text-sm hover:text-gold-400 cursor-pointer transition-colors">{item}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-3">Perusahaan</h4>
-              <ul className="space-y-2">
-                {['Tentang Kami', 'Karir', 'Blog', 'Kontak', 'FAQ'].map((item) => (
-                  <li key={item}><span className="text-gray-500 text-sm hover:text-gold-400 cursor-pointer transition-colors">{item}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-3">Legal</h4>
-              <ul className="space-y-2">
-                {['Syarat & Ketentuan', 'Kebijakan Privasi', 'Kebijakan Pembatalan', 'Asuransi'].map((item) => (
-                  <li key={item}><span className="text-gray-500 text-sm hover:text-gold-400 cursor-pointer transition-colors">{item}</span></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-white/5 text-center">
             <p className="text-gray-600 text-sm">
-              © 2025 Renmoku. All rights reserved. Premium Car Rental Platform.
+              © 2025 Renmoku. Premium Car Rental Platform.
             </p>
           </div>
         </div>
