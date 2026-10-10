@@ -39,6 +39,7 @@ import {
   AreaChart,
 } from 'recharts';
 import { useAppStore } from '../../stores/useAppStore';
+import AdminVerificationPanel from './VerificationPanel';
 
 // ============================================================================
 // DATA
@@ -102,23 +103,6 @@ const actionItems = [
     title: 'Kendaraan Review',
     count: 8,
     description: 'Menunggu approval listing',
-  },
-];
-
-const pendingVerifications = [
-  {
-    id: 'KYC001',
-    name: 'Ahmad Sudirman',
-    type: 'individual',
-    document: 'KTP & SIM A',
-    submittedAt: '2 jam lalu',
-  },
-  {
-    id: 'KYC002',
-    name: 'PT Maju Jaya',
-    type: 'corporate',
-    document: 'NIB & Akta',
-    submittedAt: '5 jam lalu',
   },
 ];
 
@@ -522,61 +506,8 @@ export default function AdminDashboard() {
                 </div>
               </motion.div>
 
-              {/* KYC Pending */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="p-6 rounded-2xl bg-[#141414] border border-white/5"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                    KYC Pending
-                  </h3>
-                  <span className="text-xs text-gray-500">12 total</span>
-                </div>
-
-                <div className="space-y-3">
-                  {pendingVerifications.map((verification) => (
-                    <div
-                      key={verification.id}
-                      className="p-3 rounded-xl bg-black/40 border border-white/5"
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center">
-                          {verification.type === 'corporate' ? (
-                            <Building2 className="w-4 h-4 text-purple-400" />
-                          ) : (
-                            <User className="w-4 h-4 text-blue-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{verification.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {verification.type === 'corporate' ? '🏢 Corporate' : '👤 Individual'} •{' '}
-                            {verification.submittedAt}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-                        <FileText className="w-3 h-3" />
-                        {verification.document}
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium hover:bg-green-500/20 transition flex items-center justify-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Verifikasi
-                        </button>
-                        <button className="flex-1 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition flex items-center justify-center gap-1">
-                          <XCircle className="w-3 h-3" />
-                          Tolak
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
+              {/* KYC Verification Panel */}
+              <AdminVerificationPanel />
 
               {/* Active Disputes */}
               <motion.div
