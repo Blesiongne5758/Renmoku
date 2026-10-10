@@ -19,6 +19,24 @@ export interface User {
   fleetOwner?: any;
 }
 
+export interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  role: 'RENTER' | 'OWNER' | 'ADMIN';
+  renterType?: 'individual' | 'corporate';
+  // Individual fields
+  ktpNumber?: string;
+  simNumber?: string;
+  address?: string;
+  // Corporate fields
+  companyName?: string;
+  nib?: string;
+  npwp?: string;
+  picName?: string;
+}
+
 // ============================================================================
 // TOKEN MANAGEMENT
 // ============================================================================
@@ -301,7 +319,7 @@ export function logout(): void {
 /**
  * Register new user
  */
-export async function register( RegisterData): Promise<{ success: boolean; error?: string }> {
+export async function register(data: RegisterData): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/auth/register', {
       method: 'POST',
