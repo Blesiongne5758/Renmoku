@@ -1,0 +1,826 @@
+// ============================================================================
+// RENMOKU — Premium Car Rental Platform
+// Database Schema (Prisma ORM)
+// ============================================================================
+// PostgreSQL 15+ | Prisma 5.x
+// Fitur: Multi-role users, fleet management, booking, payment, e-contract
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  INDIVIDUAL    // Penyewa pribadi
+  CORPORATE     // Penyewa perusahaan
+  OWNER         // Pemilik armada
+  ADMIN         // Admin platform
+  DRIVER        // Driver
+}
+
+enum VehicleType {
+  SEDAN
+  SUV
+  MPV
+  LUXURY
+  SPORT
+  VAN
+  PICKUP
+}
+
+enum Transmission {
+  AUTOMATIC
+  MANUAL
+  CVT
+}
+
+enum FuelType {
+  BENSIN
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+enum VehicleStatus {
+  AVAILABLE     // Siap disewa
+  RENTED        // Sedang disewa
+  MAINTENANCE   // Dalam perawatan
+  INSPECTION    // Sedang diperiksa
+  INACTIVE      // Tidak aktif
+}
+
+enum RentalType {
+  WITH_DRIVER   // Sewa dengan driver
+  SELF_DRIVE    // Lepas kunci
+}
+
+enum BookingStatus {
+  DRAFT         // Belum disubmit
+  PENDING       // Menunggu verifikasi dokumen
+  VERIFIED      // Dokumen terverifikasi
+  CONFIRMED     // DP dibayar, booking dikonfirmasi
+  ACTIVE        // Kendaraan sedang digunakan
+  COMPLETED     // Selesai & dikembalikan
+  CANCELLED     // Dibatalkan
+  OVERDUE       // Melewati batas waktu
+}
+
+enum PaymentStatus {
+  UNPAID        // Belum bayar
+  DP_PAID       // DP sudah dibayar
+  FULLY_PAID    // Lunas
+  REFUNDED      // Dana dikembalikan
+  OVERDUE       // Terlambat bayar
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  VIRTUAL_ACCOUNT
+  E_WALLET
+  CREDIT_CARD
+  QRIS
+  CORPORATE_BILLING
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  SIGNED_BY_RENTER
+  SIGNED_BY_OWNER
+  FULLY_SIGNED
+  EXPIRED
+}
+
+enum InspectionType {
+  CHECK_IN      // Saat ambil kendaraan
+  CHECK_OUT     // Saat kembalikan kendaraan
+}
+
+enum DamageLevel {
+  NONE
+  MINOR         // Lecet kecil
+  MODERATE      // Penyok/pecah
+  MAJOR         // Rusak signifikan
+  TOTAL_LOSS    // Rusak total
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  PAYMENT_RECEIVED
+  PAYMENT_REMINDER
+  DOCUMENT_VERIFIED
+  DOCUMENT_REJECTED
+  VEHICLE_AVAILABLE
+  CHECK_IN_REMINDER
+  CHECK_OUT_REMINDER
+  REVIEW_REQUEST
+  OVERDUE_WARNING
+  SYSTEM_ALERT
+}
+
+// ============================================================================
+// USERS & PROFILES
+// ============================================================================
+
+/// Tabel utama pengguna platform
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  phone         String?
+  avatar        String?
+  role          UserRole
+  emailVerified Boolean   @default(false)
+  phoneVerified Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  individualProfile IndividualProfile?
+  corporateProfile  CorporateProfile?
+  ownerProfile      OwnerProfile?
+  driverProfile     DriverProfile?
+  bookings          Booking[]       @relation("RenterBookings")
+  ownedBookings     Booking[]       @relation("OwnerBookings")
+  payments          Payment[]
+  reviews           Review[]
+  documents         Document[]
+  notifications     Notification[]
+  contracts         Contract[]      @relation("ContractRenter")
+  ownerContracts    Contract[]      @relation("ContractOwner")
+  activityLogs      ActivityLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+/// Profil penyewa pribadi — syarat: KTP, SIM A, KK, jaminan pribadi
+model IndividualProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  fullName      String
+  nik           String   @unique // No. KTP (16 digit)
+  birthDate     DateTime?
+  gender        String?
+  address       String?
+  city          String?
+  province      String?
+  postalCode    String?
+  simNumber     String?  // No. SIM A
+  simExpiry     DateTime?
+  emergencyName String?
+  emergencyPhone String?
+  isVerified    Boolean  @default(false)
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([nik])
+  @@map("individual_profiles")
+}
+
+/// Profil penyewa corporate — syarat: NIB, Akta, NPWP, PIC, Guarantee Letter
+model CorporateProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  companyName     String
+  nib             String   @unique // Nomor Induk Berusaha
+  npwp            String   @unique
+  aktaNumber      String?
+  aktaDate        DateTime?
+  notaryName      String?
+  companyAddress  String?
+  companyCity     String?
+  companyProvince String?
+  picName         String   // Person In Charge
+  picPosition     String?
+  picPhone        String?
+  picEmail        String?
+  creditLimit     Decimal? @db.Decimal(15, 2) // Limit kredit corporate
+  isVerified      Boolean  @default(false)
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([nib])
+  @@index([npwp])
+  @@map("corporate_profiles")
+}
+
+/// Profil pemilik armada (Fleet Owner)
+model OwnerProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  businessName    String
+  businessType    String   // PT, CV, Perorangan
+  npwp            String?
+  businessAddress String?
+  bankName        String?  // Untuk pencairan pendapatan
+  bankAccount     String?
+  bankAccountName String?
+  rating          Decimal  @default(0) @db.Decimal(3, 2)
+  totalVehicles   Int      @default(0)
+  totalBookings   Int      @default(0)
+  isVerified      Boolean  @default(false)
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles Vehicle[]
+
+  @@map("owner_profiles")
+}
+
+/// Profil driver
+model DriverProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  fullName        String
+  nik             String   @unique
+  simNumber       String
+  simExpiry       DateTime
+  phone           String
+  address         String?
+  city            String?
+  photo           String?
+  rating          Decimal  @default(0) @db.Decimal(3, 2)
+  totalTrips      Int      @default(0)
+  isAvailable     Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([isAvailable])
+  @@map("driver_profiles")
+}
+
+// ============================================================================
+// VEHICLES & FLEET
+// ============================================================================
+
+/// Data kendaraan dalam armada
+model Vehicle {
+  id              String        @id @default(uuid())
+  ownerId         String
+  name            String        // e.g. "Toyota Alphard"
+  brand           String        // e.g. "Toyota"
+  model           String        // e.g. "2.5 X"
+  year            Int
+  type            VehicleType
+  transmission    Transmission
+  fuel            FuelType
+  seats           Int
+  color           String
+  plateNumber     String        @unique // Nomor polisi
+  chassisNumber   String        @unique // No. Rangka
+  engineNumber    String?       // No. Mesin
+
+  // Pricing
+  pricePerDay     Decimal       @db.Decimal(12, 2)
+  pricePerWeek    Decimal       @db.Decimal(12, 2)
+  pricePerMonth   Decimal       @db.Decimal(12, 2)
+  driverFeePerDay Decimal?      @db.Decimal(12, 2) // Biaya tambahan jika dengan driver
+
+  // Location & Availability
+  location        String        // Kota
+  address         String?       // Alamat lengkap
+  latitude        Decimal?      @db.Decimal(10, 8)
+  longitude       Decimal?      @db.Decimal(11, 8)
+  status          VehicleStatus @default(AVAILABLE)
+
+  // Media
+  images          String[]      // Array URL gambar
+  interiorImages  String[]      // Gambar interior untuk explorer
+  videoUrl        String?       // Video showcase
+
+  // Features & Specs
+  features        String[]      // ["Captain Seat", "Panoramic Roof", ...]
+  description     String?       // Deskripsi detail
+
+  // Stats
+  rating          Decimal       @default(0) @db.Decimal(3, 2)
+  totalReviews    Int           @default(0)
+  totalBookings   Int           @default(0)
+  totalDistance   Decimal       @default(0) @db.Decimal(10, 2) // Total km
+
+  // Insurance
+  insuranceType   String?       // All-risk, TLO, etc.
+  insuranceExpiry DateTime?
+  stnkExpiry      DateTime?     // Masa berlaku STNK
+  kirExpiry       DateTime?     // Masa berlaku KIR (untuk commercial)
+
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  owner           OwnerProfile  @relation(fields: [ownerId], references: [id])
+  bookings        Booking[]
+  reviews         Review[]
+  inspections     VehicleInspection[]
+  maintenanceLogs MaintenanceLog[]
+  calendarSlots   VehicleCalendar[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([location])
+  @@index([type])
+  @@index([pricePerDay])
+  @@map("vehicles")
+}
+
+/// Kalender ketersediaan kendaraan
+model VehicleCalendar {
+  id         String   @id @default(uuid())
+  vehicleId  String
+  date       DateTime @db.Date
+  isAvailable Boolean @default(true)
+  bookingId  String?  // Jika sudah di-book
+  priceOverride Decimal? @db.Decimal(12, 2) // Harga khusus (holiday, etc.)
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, date])
+  @@index([date])
+  @@map("vehicle_calendars")
+}
+
+// ============================================================================
+// BOOKINGS
+// ============================================================================
+
+/// Data pemesanan/booking kendaraan
+model Booking {
+  id              String        @id @default(uuid())
+  bookingNumber   String        @unique // Format: BK-YYYYMMDD-XXXX
+
+  // Parties
+  renterId        String        // ID penyewa
+  ownerId         String        // ID pemilik armada
+  vehicleId       String
+  driverId        String?       // Null jika lepas kunci
+
+  // Rental Details
+  rentalType      RentalType
+  startDate       DateTime
+  endDate         DateTime
+  duration        Int           // Dalam hari
+  actualEndDate   DateTime?     // Tanggal aktual pengembalian
+
+  // Locations
+  pickupLocation  String
+  pickupAddress   String?
+  pickupLat       Decimal?      @db.Decimal(10, 8)
+  pickupLng       Decimal?      @db.Decimal(11, 8)
+  dropoffLocation String
+  dropoffAddress  String?
+  dropoffLat      Decimal?      @db.Decimal(10, 8)
+  dropoffLng      Decimal?      @db.Decimal(11, 8)
+
+  // Pricing
+  basePrice       Decimal       @db.Decimal(12, 2) // Harga dasar
+  durationDiscount Decimal      @default(0) @db.Decimal(5, 2) // Persentase diskon
+  driverTotalFee  Decimal       @default(0) @db.Decimal(12, 2)
+  insuranceFee    Decimal       @default(0) @db.Decimal(12, 2)
+  deliveryFee     Decimal       @default(0) @db.Decimal(12, 2)
+  subtotal        Decimal       @db.Decimal(12, 2)
+  taxAmount       Decimal       @default(0) @db.Decimal(12, 2) // PPN 11%
+  totalPrice      Decimal       @db.Decimal(12, 2)
+
+  // Payment
+  dpPercentage    Int           @default(30) // 30-50%
+  dpAmount        Decimal       @db.Decimal(12, 2)
+  remainingAmount Decimal       @db.Decimal(12, 2)
+  paymentStatus   PaymentStatus @default(UNPAID)
+
+  // Status
+  status          BookingStatus @default(DRAFT)
+
+  // Notes
+  renterNote      String?       // Catatan dari penyewa
+  ownerNote       String?       // Catatan dari pemilik
+  cancelReason    String?
+
+  // Timestamps
+  confirmedAt     DateTime?
+  startedAt       DateTime?     // Saat check-in
+  completedAt     DateTime?     // Saat check-out
+  cancelledAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  renter      User              @relation("RenterBookings", fields: [renterId], references: [id])
+  owner       User              @relation("OwnerBookings", fields: [ownerId], references: [id])
+  vehicle     Vehicle           @relation(fields: [vehicleId], references: [id])
+  driver      DriverProfile?    @relation(fields: [driverId], references: [id])
+  payments    Payment[]
+  contract    Contract?
+  inspections VehicleInspection[]
+  reviews     Review[]
+  extras      BookingExtra[]
+
+  @@index([renterId])
+  @@index([ownerId])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("bookings")
+}
+
+/// Layanan tambahan dalam booking
+model BookingExtra {
+  id          String  @id @default(uuid())
+  bookingId   String
+  name        String  // e.g. "Baby Seat", "GPS", "Toll Card"
+  quantity    Int     @default(1)
+  pricePerUnit Decimal @db.Decimal(12, 2)
+  totalPrice  Decimal @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_extras")
+}
+
+// ============================================================================
+// PAYMENTS
+// ============================================================================
+
+/// Data pembayaran (DP & pelunasan)
+model Payment {
+  id              String        @id @default(uuid())
+  paymentNumber   String        @unique // Format: PAY-YYYYMMDD-XXXX
+  bookingId       String
+  userId          String        // Siapa yang bayar
+
+  // Payment Details
+  type            String        // "dp" atau "full" atau "remaining"
+  amount          Decimal       @db.Decimal(12, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(UNPAID)
+
+  // Transaction Info
+  transactionId   String?       // ID dari payment gateway
+  referenceNumber String?       // No. referensi bank
+  vaNumber        String?       // Virtual account number
+  qrCodeUrl       String?       // URL QR code (QRIS)
+  paymentUrl      String?       // URL pembayaran (payment gateway)
+
+  // Timestamps
+  paidAt          DateTime?
+  dueAt           DateTime      // Batas waktu pembayaran
+  expiredAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+// ============================================================================
+// CONTRACTS (E-Contract Digital)
+// ============================================================================
+
+/// Kontrak digital antara penyewa dan pemilik
+model Contract {
+  id              String         @id @default(uuid())
+  contractNumber  String         @unique // Format: CTR-YYYYMMDD-XXXX
+  bookingId       String         @unique
+  renterId        String
+  ownerId         String
+
+  // Contract Content
+  title           String
+  content         String         // Isi kontrak (HTML/Markdown)
+  termsAndConditions String      // S&K spesifik per tipe user
+
+  // Signatures
+  renterSignedAt  DateTime?
+  renterSignature String?        // Base64 signature image
+  renterIp        String?
+  ownerSignedAt   DateTime?
+  ownerSignature  String?
+  ownerIp         String?
+
+  // Status
+  status          ContractStatus @default(DRAFT)
+  pdfUrl          String?        // URL PDF kontrak yang sudah ditandatangani
+
+  // Timestamps
+  sentAt          DateTime?
+  expiresAt       DateTime?      // Batas waktu tanda tangan
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  renter  User    @relation("ContractRenter", fields: [renterId], references: [id])
+  owner   User    @relation("ContractOwner", fields: [ownerId], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("contracts")
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+/// Upload dokumen persyaratan
+model Document {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // "ktp", "sim", "kk", "npwp", "nib", "akta", "guarantee_letter", "jaminan"
+  title       String   // Nama dokumen
+  fileUrl     String   // URL file di storage
+  fileType    String   // "image/jpeg", "application/pdf", etc.
+  fileSize    Int      // Dalam bytes
+  status      String   @default("pending") // "pending", "verified", "rejected"
+  verifiedBy  String?  // Admin yang verifikasi
+  verifiedAt  DateTime?
+  rejectReason String?
+  expiryDate  DateTime? // Tanggal kadaluarsa dokumen
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("documents")
+}
+
+// ============================================================================
+// VEHICLE INSPECTIONS (Check-in / Check-out)
+// ============================================================================
+
+/// Inspeksi kondisi kendaraan saat check-in dan check-out
+model VehicleInspection {
+  id              String        @id @default(uuid())
+  bookingId       String
+  vehicleId       String
+  type            InspectionType // CHECK_IN atau CHECK_OUT
+
+  // Fuel & Odometer
+  fuelLevel       Int           // 0-100%
+  odometerReading Decimal       @db.Decimal(10, 2) // KM saat inspeksi
+
+  // Exterior Condition
+  exteriorNotes   String?
+  exteriorPhotos  String[]      // Array URL foto kondisi luar
+
+  // Interior Condition
+  interiorNotes   String?
+  interiorPhotos  String[]      // Array URL foto kondisi dalam
+
+  // Damage
+  hasDamage       Boolean       @default(false)
+  damageNotes     String?
+  damagePhotos    String[]      // Array URL foto kerusakan
+  damageLevel     DamageLevel   @default(NONE)
+  estimatedDamageCost Decimal?  @db.Decimal(12, 2)
+
+  // Equipment Check
+  equipmentCheck  Json?         // { "spare_tire": true, "jack": true, "first_aid": false, ... }
+
+  // Inspector
+  inspectedBy     String        // ID user (renter/owner/driver/admin)
+  inspectedByName String
+
+  // Signatures
+  renterSignature String?       // Base64 signature
+  ownerSignature  String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([bookingId])
+  @@index([vehicleId])
+  @@index([type])
+  @@map("vehicle_inspections")
+}
+
+// ============================================================================
+// REVIEWS
+// ============================================================================
+
+/// Rating dan review dari penyewa
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String   @unique // 1 booking = 1 review
+  renterId    String
+  vehicleId   String
+  ownerId     String   // Owner yang di-review
+
+  // Ratings (1-5)
+  overallRating Int     // Rating keseluruhan
+  vehicleRating Int     // Kondisi kendaraan
+  serviceRating Int     // Pelayanan
+  valueRating   Int     // Value for money
+
+  // Content
+  title         String?
+  comment       String?
+  photos        String[] // Foto review
+
+  // Response
+  ownerReply    String?
+  ownerReplyAt  DateTime?
+
+  isAnonymous   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id])
+  renter  User    @relation(fields: [renterId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([ownerId])
+  @@index([overallRating])
+  @@map("reviews")
+}
+
+// ============================================================================
+// MAINTENANCE
+// ============================================================================
+
+/// Log perawatan kendaraan
+model MaintenanceLog {
+  id            String   @id @default(uuid())
+  vehicleId     String
+  type          String   // "oil_change", "tire_rotation", "brake_service", "general", "accident_repair"
+  title         String
+  description   String?
+  cost          Decimal  @db.Decimal(12, 2)
+  mileageAtService Decimal? @db.Decimal(10, 2) // KM saat servis
+  serviceDate   DateTime
+  nextServiceDate DateTime?
+  workshop      String?  // Nama bengkel
+  invoiceUrl    String?  // Foto/faktur servis
+  photos        String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([serviceDate])
+  @@map("maintenance_logs")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+/// Notifikasi untuk pengguna
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?            // Data tambahan (bookingId, etc.)
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  actionUrl   String?          // URL untuk aksi (deep link)
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================================================
+// ACTIVITY LOGS (Audit Trail)
+// ============================================================================
+
+/// Log aktivitas untuk audit & debugging
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  action      String   // "booking.created", "payment.received", "document.uploaded", etc.
+  entityType  String   // "booking", "payment", "vehicle", "document", etc.
+  entityId    String?
+  oldValues   Json?    // Nilai sebelumnya (untuk tracking perubahan)
+  newValues   Json?    // Nilai baru
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?    // Data tambahan
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// ============================================================================
+// PLATFORM SETTINGS
+// ============================================================================
+
+/// Pengaturan platform (admin)
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  category    String   // "pricing", "notification", "system", etc.
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("platform_settings")
+}
+
+/// Lokasi yang didukung platform
+model Location {
+  id          String   @id @default(uuid())
+  name        String   // "Jakarta", "Surabaya", etc.
+  displayName String   // "DKI Jakarta"
+  province    String
+  latitude    Decimal  @db.Decimal(10, 8)
+  longitude   Decimal  @db.Decimal(11, 8)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+  @@map("locations")
+}
+
+/// Promo & diskon
+model Promotion {
+  id            String   @id @default(uuid())
+  code          String   @unique // "HEMAT20", "NEWUSER", etc.
+  title         String
+  description   String?
+  discountType  String   // "percentage" atau "fixed"
+  discountValue Decimal  @db.Decimal(10, 2)
+  minBooking    Decimal? @db.Decimal(12, 2) // Minimum total booking
+  maxDiscount   Decimal? @db.Decimal(12, 2) // Maksimum potongan
+  usageLimit    Int?                         // Total penggunaan
+  usedCount     Int      @default(0)
+  perUserLimit  Int      @default(1)          // Maks per user
+  startDate     DateTime
+  endDate       DateTime
+  applicableRoles UserRole[] // Role yang bisa pakai
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([code])
+  @@index([startDate, endDate])
+  @@map("promotions")
+}

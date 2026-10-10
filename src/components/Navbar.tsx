@@ -10,6 +10,7 @@ export default function Navbar() {
     { id: 'fleet', label: 'Armada' },
     { id: 'booking', label: 'Booking' },
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'database', label: 'Database' },
   ];
 
   return (
