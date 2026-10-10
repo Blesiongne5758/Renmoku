@@ -5,6 +5,7 @@ import {
 import { useAppStore } from '../stores/useAppStore';
 import { StatsCard, RevenueChart, FleetStatus, RecentBookings } from './dashboard';
 import Sidebar from './Sidebar';
+import MobileBottomNav from './MobileBottomNav';
 
 export default function OwnerDashboardContent() {
   const { currentUser } = useAppStore();
@@ -24,7 +25,7 @@ export default function OwnerDashboardContent() {
       <Sidebar />
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 lg:ml-64 overflow-y-auto">
+      <main className="flex-1 lg:ml-64 overflow-y-auto pb-20 lg:pb-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 px-8 py-4">
           <div className="flex items-center justify-between">
@@ -107,6 +108,9 @@ export default function OwnerDashboardContent() {
           <RecentBookings />
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }

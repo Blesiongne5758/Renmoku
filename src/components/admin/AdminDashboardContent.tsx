@@ -22,6 +22,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import AdminVerificationPanel from './VerificationPanel';
 import AdminStatsGrid from './AdminStatsGrid';
 import AdminSidebar from './AdminSidebar';
+import MobileBottomNav from '../MobileBottomNav';
 
 const platformGrowthData = [
   { month: 'Jul', users: 1800, bookings: 420, revenue: 680 },
@@ -50,7 +51,7 @@ export default function AdminDashboardContent() {
       <AdminSidebar />
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 lg:ml-0 overflow-y-auto min-h-screen">
+      <main className="flex-1 lg:ml-0 overflow-y-auto min-h-screen pb-20 lg:pb-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -259,6 +260,9 @@ export default function AdminDashboardContent() {
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }
