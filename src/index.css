@@ -583,3 +583,8 @@ body {
   background: rgba(184, 146, 63, 0.3);
   color: #fff;
 }
+
+/* Custom gradient untuk hero section */
+.bg-gradient-dark-purple {
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a0a2e 50%, #0f0520 100%);
+}

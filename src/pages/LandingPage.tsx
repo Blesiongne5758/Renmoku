@@ -1,14 +1,39 @@
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import {
-  Car, Shield, Clock, Award, Users, Star,
-  ArrowRight, CheckCircle2, Sparkles, Crown,
-  MapPin, CreditCard, FileText, Search
+  MapPin,
+  Calendar,
+  Car,
+  Search,
+  Star,
+  ArrowRight,
+  Sparkles,
+  Crown,
+  Shield,
+  Clock,
+  Award,
+  Users,
+  CreditCard,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
-import VehicleShowcase from '../components/VehicleShowcase';
 
 export default function LandingPage() {
   const { setCurrentPage, setAuthMode } = useAppStore();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const handleGetStarted = () => {
     setAuthMode('register');
@@ -20,44 +45,168 @@ export default function LandingPage() {
     setCurrentPage('auth');
   };
 
+  // Popular cars data
+  const popularCars = [
+    {
+      name: 'Toyota Avanza',
+      price: 350000,
+      image: 'https://images.unsplash.com/photo-1549925245-f20a1bac6454?w=800&q=80',
+      rating: 4.8,
+    },
+    {
+      name: 'Honda HR-V',
+      price: 450000,
+      image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=80',
+      rating: 4.9,
+    },
+    {
+      name: 'BMW X5',
+      price: 2500000,
+      image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80',
+      rating: 5.0,
+    },
+    {
+      name: 'Mercedes S-Class',
+      price: 3500000,
+      image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80',
+      rating: 5.0,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-luxury">
-      {/* Hero Section - Minimal & Focused */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {/* Atmospheric Background */}
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-dark-purple">
+        {/* Animated Background Elements */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-radial-gold opacity-60" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold-500/3 rounded-full blur-3xl" />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-luxury-950" />
+          
+          {/* Dynamic Particles */}
+          {Array.from({ length: 50 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-gold-400/30 rounded-full"
+              initial={{
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+              }}
+              animate={{
+                x: [
+                  Math.random() * window.innerWidth,
+                  Math.random() * window.innerWidth,
+                  Math.random() * window.innerWidth,
+                ],
+                y: [
+                  Math.random() * window.innerHeight,
+                  Math.random() * window.innerHeight,
+                  Math.random() * window.innerHeight,
+                ],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 10 + Math.random() * 10,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+            />
+          ))}
+
+          {/* Glow Effects */}
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              opacity: [0.5, 0.3, 0.5],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {/* Car Image with Reveal Animation */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-light border border-gold-500/10 mb-8"
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              y: 0,
+              x: mousePosition.x * 0.5,
+            }}
+            transition={{ 
+              duration: 1.2,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="mb-12 relative"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse-soft" />
-            <span className="text-xs text-gold-300/80 font-medium tracking-wider uppercase">
-              Premium Car Rental
-            </span>
+            <div className="relative inline-block">
+              <motion.img
+                src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1200&q=80"
+                alt="Luxury Car"
+                className="w-full max-w-3xl mx-auto rounded-2xl shadow-2xl"
+                style={{
+                  filter: 'drop-shadow(0 20px 60px rgba(212, 168, 83, 0.3))',
+                }}
+                animate={{
+                  y: [0, -10, 0],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              />
+              
+              {/* Sparkles around car */}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-gold-400 rounded-full"
+                  style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    scale: [0, 1, 0],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: i * 0.3,
+                  }}
+                />
+              ))}
+            </div>
           </motion.div>
 
-          {/* Heading - Clean Typography */}
+          {/* Tagline */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="font-[Playfair_Display] text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 tracking-tight-custom"
+            className="font-[Playfair_Display] text-5xl sm:text-6xl lg:text-7xl font-bold text-gold-gradient mb-6 tracking-tight-custom"
           >
-            <span className="block text-white">Sewa Mobil</span>
-            <span className="block text-gold-gradient mt-2">Premium</span>
-            <span className="block text-white/90 mt-2 text-4xl sm:text-5xl lg:text-6xl font-medium">
-              Tanpa Ribet
-            </span>
+            Rasakan Kemewahan
+            <br />
+            di Setiap Perjalanan
           </motion.h1>
 
           {/* Subtitle */}
@@ -65,64 +214,63 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10"
           >
-            Platform rental mobil terpercaya dengan koleksi kendaraan mewah.
-            Proses mudah, harga transparan, layanan profesional.
+            Platform rental mobil premium dengan koleksi kendaraan mewah terbaik.
+            Proses mudah, harga transparan, layanan profesional 24/7.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
-          >
-            <motion.button
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleGetStarted}
-              className="btn-luxury text-base px-8 py-4 flex items-center gap-2 group"
-            >
-              <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-              Daftar Sekarang
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleLogin}
-              className="btn-ghost text-base px-8 py-4"
-            >
-              Sudah Punya Akun?
-            </motion.button>
-          </motion.div>
-
-          {/* Stats - Neumorphic Cards */}
+          {/* Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="max-w-4xl mx-auto"
           >
-            {[
-              { icon: Car, label: 'Armada', value: '500+' },
-              { icon: Users, label: 'Pelanggan', value: '2,500+' },
-              { icon: Star, label: 'Rating', value: '4.9/5' },
-              { icon: MapPin, label: 'Kota', value: '15+' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 + i * 0.1 }}
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="neu-raised rounded-2xl p-5 text-center"
-              >
-                <stat.icon className="w-5 h-5 text-gold-400 mx-auto mb-2" />
-                <p className="text-white font-bold text-xl mb-0.5">{stat.value}</p>
-                <p className="text-gray-500 text-xs">{stat.label}</p>
-              </motion.div>
-            ))}
+            <div className="glass rounded-2xl p-2 border border-gold-500/10">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                {/* Location */}
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
+                  <input
+                    type="text"
+                    placeholder="Lokasi"
+                    className="input-luxury pl-10 py-3 rounded-xl w-full"
+                  />
+                </div>
+
+                {/* Date */}
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
+                  <input
+                    type="date"
+                    className="input-luxury pl-10 py-3 rounded-xl w-full [color-scheme:dark]"
+                  />
+                </div>
+
+                {/* Car Type */}
+                <div className="relative">
+                  <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gold-400/60" />
+                  <select className="input-luxury pl-10 py-3 rounded-xl w-full appearance-none cursor-pointer">
+                    <option value="">Tipe Mobil</option>
+                    <option value="suv">SUV</option>
+                    <option value="sedan">Sedan</option>
+                    <option value="mpv">MPV</option>
+                    <option value="sport">Sport</option>
+                  </select>
+                </div>
+
+                {/* Search Button */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="btn-luxury py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Search className="w-5 h-5" />
+                  <span className="font-semibold">Cari</span>
+                </motion.button>
+              </div>
+            </div>
           </motion.div>
         </div>
 
@@ -134,18 +282,102 @@ export default function LandingPage() {
           className="absolute bottom-8 left-1/2 -translate-x-1/2"
         >
           <motion.div
-            animate={{ y: [0, 8, 0] }}
+            animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
             className="flex flex-col items-center gap-2"
           >
-            <span className="text-[10px] text-gray-600 tracking-widest uppercase">Scroll</span>
-            <div className="w-px h-8 bg-gradient-to-b from-gold-500/30 to-transparent" />
+            <span className="text-xs text-gray-500 tracking-widest uppercase">Scroll</span>
+            <div className="w-px h-8 bg-gradient-to-b from-gold-500/50 to-transparent" />
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Features Section - Clean Grid */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 relative">
+      {/* Popular Cars Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
+              Mobil <span className="text-gold-gradient">Populer</span>
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Pilihan kendaraan terbaik yang paling banyak diminati pelanggan kami
+            </p>
+          </motion.div>
+
+          {/* Cars Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {popularCars.map((car, index) => (
+              <motion.div
+                key={car.name}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -8 }}
+                className="card-luxury rounded-2xl overflow-hidden group cursor-pointer"
+              >
+                {/* Car Image */}
+                <div className="relative h-48 overflow-hidden">
+                  <motion.img
+                    src={car.image}
+                    alt={car.name}
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.4 }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-luxury-900 via-transparent to-transparent" />
+                  
+                  {/* Rating Badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg glass">
+                    <Star className="w-3 h-3 text-gold-400 fill-gold-400" />
+                    <span className="text-xs text-white font-medium">{car.rating}</span>
+                  </div>
+                </div>
+
+                {/* Car Info */}
+                <div className="p-5">
+                  <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-gold-300 transition-colors">
+                    {car.name}
+                  </h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-gold-gradient font-bold text-xl">
+                      Rp {(car.price / 1000).toFixed(0)}k
+                    </span>
+                    <span className="text-xs text-gray-500">/hari</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* View All Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentPage('fleet')}
+              className="btn-ghost px-8 py-3 rounded-xl inline-flex items-center gap-2"
+            >
+              Lihat Semua Armada
+              <ArrowRight className="w-4 h-4" />
+            </motion.button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-luxury">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -156,8 +388,8 @@ export default function LandingPage() {
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mengapa <span className="text-gold-gradient">Renmoku</span>?
             </h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              Layanan premium dengan standar tertinggi
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Layanan premium dengan standar tertinggi untuk kenyamanan perjalanan Anda
             </p>
           </motion.div>
 
@@ -214,165 +446,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works - Minimal Steps */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 relative">
-        <div className="absolute inset-0 bg-radial-gold opacity-30" />
-        <div className="max-w-5xl mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
-              Cara <span className="text-gold-gradient">Mudah</span> Menyewa
-            </h2>
-            <p className="text-gray-500">Hanya 4 langkah sederhana</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { step: '01', icon: Search, title: 'Pilih Kendaraan', desc: 'Jelajahi armada kami' },
-              { step: '02', icon: FileText, title: 'Upload Dokumen', desc: 'KTP, SIM, dan persyaratan' },
-              { step: '03', icon: CreditCard, title: 'Bayar DP', desc: 'Konfirmasi dengan DP 30%' },
-              { step: '04', icon: Car, title: 'Nikmati Perjalanan', desc: 'Pick-up dan mulai perjalanan' },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="relative"
-              >
-                <div className="neu-raised rounded-2xl p-6 text-center h-full">
-                  <div className="relative inline-block mb-4">
-                    <div className="w-14 h-14 rounded-2xl neu-gold flex items-center justify-center">
-                      <item.icon className="w-6 h-6 text-gold-400" />
-                    </div>
-                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 text-luxury-900 text-xs font-bold flex items-center justify-center shadow-lg">
-                      {item.step}
-                    </span>
-                  </div>
-                  <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                  <p className="text-gray-500 text-sm">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Vehicle Showcase - 360° View */}
-      <VehicleShowcase />
-
-      {/* For Owners Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full badge-gold mb-4">
-                <Crown className="w-3.5 h-3.5" />
-                <span className="text-xs font-medium">UNTUK PEMILIK RENTAL</span>
-              </div>
-              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
-                Kelola Armada <span className="text-gold-gradient">Lebih Mudah</span>
-              </h2>
-              <p className="text-gray-500 mb-6 leading-relaxed">
-                Daftarkan kendaraan Anda dan dapatkan penghasilan tambahan dengan platform lengkap.
-              </p>
-
-              <div className="space-y-3 mb-8">
-                {[
-                  'Dashboard lengkap untuk manajemen armada',
-                  'Kalender booking real-time',
-                  'Pengaturan DP fleksibel (20-50%)',
-                  'Laporan pendapatan detail',
-                  'Virtual 360° showcase',
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-start gap-3"
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-gold-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-300 text-sm">{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGetStarted}
-                className="btn-luxury flex items-center gap-2 group"
-              >
-                Daftar Sebagai Owner
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <div className="card-luxury p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-white font-semibold">Dashboard Owner</h3>
-                  <span className="badge-gold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
-                    Live
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="neu-pressed rounded-xl p-4">
-                    <p className="text-xs text-gray-500 mb-1">Total Armada</p>
-                    <p className="text-white font-bold text-2xl">12</p>
-                  </div>
-                  <div className="neu-pressed rounded-xl p-4">
-                    <p className="text-xs text-gray-500 mb-1">Booking Aktif</p>
-                    <p className="text-gold-400 font-bold text-2xl">4</p>
-                  </div>
-                </div>
-
-                <div className="neu-pressed rounded-xl p-4 mb-4">
-                  <p className="text-xs text-gray-500 mb-2">Pendapatan Bulan Ini</p>
-                  <p className="text-gold-gradient font-bold text-3xl">Rp 45.5jt</p>
-                  <p className="text-xs text-emerald-400 mt-1">+15% dari bulan lalu</p>
-                </div>
-
-                <div className="neu-soft rounded-xl p-4">
-                  <p className="text-xs text-gray-500 mb-3">Pengaturan DP</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 rounded-full bg-luxury-900 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '30%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
-                      />
-                    </div>
-                    <span className="text-sm text-gold-400 font-semibold">30%</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section - Minimal */}
+      {/* CTA Section */}
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <motion.div
@@ -404,7 +478,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer - Minimal */}
+      {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-white/[0.03]">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
