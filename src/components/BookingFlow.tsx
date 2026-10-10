@@ -30,6 +30,13 @@ export default function BookingFlow() {
     agreeTerms: false,
   });
 
+  // Upload status tracking
+  const [uploadStatus, setUploadStatus] = useState({
+    ktp: false,
+    sim: false,
+    kk: false,
+  });
+
   if (!selectedVehicle) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
@@ -98,6 +105,23 @@ export default function BookingFlow() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm text-gold-400 font-medium">Step {bookingStep}/5</span>
+            </div>
+            <div className="h-2 rounded-full neu-pressed overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(bookingStep / 5) * 100}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="h-full bg-gradient-to-r from-gold-500 to-gold-400 rounded-full"
+              />
+            </div>
+          </div>
+
+          {/* Step Indicators */}
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center flex-1">
@@ -257,91 +281,99 @@ export default function BookingFlow() {
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
-                        Informasi Penyewa
+                        STEP 2: Informasi Penyewa
                       </h2>
                       <p className="text-gray-400 text-sm">Lengkapi data diri Anda untuk proses verifikasi</p>
                     </div>
 
+                    {/* Nama Lengkap - Full Width */}
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1.5 block">Nama Lengkap:</label>
+                      <input
+                        type="text"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        className="input-luxury w-full"
+                        placeholder="John Doe"
+                      />
+                    </div>
+
+                    {/* No. KTP dan No. SIM - 2 Kolom */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">Nama Lengkap</label>
-                        <input
-                          type="text"
-                          value={formData.fullName}
-                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                          className="input-luxury"
-                          placeholder="Sesuai KTP"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">No. KTP</label>
+                        <label className="text-xs text-gray-400 mb-1.5 block">No. KTP:</label>
                         <input
                           type="text"
                           value={formData.ktpNumber}
                           onChange={(e) => setFormData({ ...formData, ktpNumber: e.target.value })}
                           className="input-luxury"
-                          placeholder="16 digit NIK"
+                          placeholder="317XXXXXXXXX"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">No. SIM</label>
+                        <label className="text-xs text-gray-400 mb-1.5 block">No. SIM:</label>
                         <input
                           type="text"
                           value={formData.simNumber}
                           onChange={(e) => setFormData({ ...formData, simNumber: e.target.value })}
                           className="input-luxury"
-                          placeholder="No. SIM A"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">No. HP</label>
-                        <input
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="input-luxury"
-                          placeholder="+62 812 xxx xxxx"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="text-xs text-gray-400 mb-1.5 block">Email</label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="input-luxury"
-                          placeholder="email@example.com"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="text-xs text-gray-400 mb-1.5 block">Alamat</label>
-                        <textarea
-                          value={formData.address}
-                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                          className="input-luxury resize-none"
-                          rows={3}
-                          placeholder="Alamat lengkap sesuai KTP"
+                          placeholder="123XXXXXXXXX"
                         />
                       </div>
                     </div>
 
-                    {/* Upload Documents */}
+                    {/* Upload Dokumen */}
                     <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {['KTP', 'SIM', 'KK'].map((doc) => (
+                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen:</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: 'ktp', label: 'KTP', uploaded: uploadStatus.ktp },
+                          { id: 'sim', label: 'SIM', uploaded: uploadStatus.sim },
+                          { id: 'kk', label: 'KK', uploaded: uploadStatus.kk },
+                        ].map((doc) => (
                           <motion.div
-                            key={doc}
+                            key={doc.id}
                             whileHover={{ scale: 1.02 }}
-                            className="p-4 rounded-xl neu-soft text-center cursor-pointer"
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setUploadStatus({ ...uploadStatus, [doc.id]: !doc.uploaded })}
+                            className={`aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${
+                              doc.uploaded
+                                ? 'neu-gold border-2 border-gold-500/30'
+                                : 'neu-soft'
+                            }`}
                           >
-                            <Upload className="w-6 h-6 text-gold-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-300 font-medium">Upload {doc}</p>
-                            <p className="text-xs text-gray-500 mt-1">JPG, PNG max 5MB</p>
+                            {doc.uploaded ? (
+                              <>
+                                <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center mb-2">
+                                  <FileText className="w-6 h-6 text-gold-400" />
+                                </div>
+                                <p className="text-sm text-gold-300 font-medium mb-1">{doc.label}</p>
+                                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                                  <Upload className="w-6 h-6 text-gray-500" />
+                                </div>
+                                <p className="text-sm text-gray-400 font-medium mb-1">{doc.label}</p>
+                                <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
+                              </>
+                            )}
                           </motion.div>
                         ))}
                       </div>
                     </div>
+
+                    {/* Lanjut Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleNext}
+                      className="w-full btn-luxury py-3.5 flex items-center justify-center gap-2"
+                    >
+                      LANJUT
+                      <ArrowRight className="w-5 h-5" />
+                    </motion.button>
                   </div>
                 )}
 
