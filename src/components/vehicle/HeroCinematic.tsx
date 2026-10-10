@@ -91,7 +91,7 @@ export default function HeroCinematic() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-6 pt-32">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-32">
         {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -99,13 +99,13 @@ export default function HeroCinematic() {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h1 className="font-[Playfair_Display] text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-200 to-gold-400 mb-6 tracking-tight-custom">
+          <h1 className="font-[Playfair_Display] text-5xl sm:text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-gold-200 to-gold-400 mb-6 tracking-tight-custom">
             Rasakan Kemewahan
           </h1>
-          <h2 className="font-[Playfair_Display] text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight-custom">
+          <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight-custom">
             di Setiap Perjalanan
           </h2>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Sewa mobil premium dengan pengalaman booking yang tak terlupakan
           </p>
         </motion.div>

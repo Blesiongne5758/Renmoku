@@ -58,19 +58,19 @@ export default function LandingPage() {
       <HeroCinematic />
 
       {/* Popular Cars Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mobil <span className="text-gold-gradient">Populer</span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
               Pilihan kendaraan terbaik yang paling banyak diminati pelanggan kami
             </p>
           </motion.div>
@@ -106,7 +106,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Car Info */}
-                <div className="p-5">
+                <div className="p-6">
                   <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-gold-300 transition-colors">
                     {car.name}
                   </h3>
@@ -145,18 +145,18 @@ export default function LandingPage() {
       <VehicleShowcase />
 
       {/* Features Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-luxury">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-luxury">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
           >
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mengapa <span className="text-gold-gradient">Renmoku</span>?
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
               Layanan premium dengan standar tertinggi untuk kenyamanan perjalanan Anda
             </p>
           </motion.div>
@@ -206,8 +206,8 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-xl neu-gold flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <feature.icon className="w-6 h-6 text-gold-400" />
                 </div>
-                <h3 className="text-white font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <h3 className="text-white font-semibold text-lg mb-3">{feature.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -215,8 +215,8 @@ export default function LandingPage() {
       </section>
 
       {/* For Owners Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -230,7 +230,7 @@ export default function LandingPage() {
               <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
                 Kelola Armada <span className="text-gold-gradient">Lebih Mudah</span>
               </h2>
-              <p className="text-gray-500 mb-6 leading-relaxed">
+              <p className="text-gray-400 text-base sm:text-lg mb-6 leading-relaxed">
                 Daftarkan kendaraan Anda dan dapatkan penghasilan tambahan dengan platform lengkap.
               </p>
 
@@ -253,7 +253,7 @@ export default function LandingPage() {
                     <div className="w-5 h-5 rounded-full bg-gold-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-gold-400 text-xs">✓</span>
                     </div>
-                    <span className="text-gray-300 text-sm">{item}</span>
+                    <span className="text-gray-300 text-sm leading-relaxed">{item}</span>
                   </motion.div>
                 ))}
               </div>
@@ -323,22 +323,22 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
+      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="card-luxury p-10 sm:p-12 text-center relative overflow-hidden"
+            className="card-luxury p-8 sm:p-12 text-center relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-radial-gold opacity-40" />
             
             <div className="relative z-10">
-              <Sparkles className="w-10 h-10 text-gold-400 mx-auto mb-4" />
-              <h2 className="font-[Playfair_Display] text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight-custom">
+              <Sparkles className="w-12 h-12 text-gold-400 mx-auto mb-6" />
+              <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
                 Siap Bergabung?
               </h2>
-              <p className="text-gray-500 max-w-md mx-auto mb-8">
+              <p className="text-gray-400 text-base sm:text-lg max-w-md mx-auto mb-8 leading-relaxed">
                 Bergabunglah dengan ribuan pengguna yang telah mempercayakan kebutuhan rental mobil mereka
               </p>
               <motion.button
