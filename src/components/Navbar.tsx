@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Car, User, LogOut } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { currentPage, setCurrentPage, isMenuOpen, setMenuOpen, currentUser, isAuthenticated, logout } = useAppStore();
@@ -71,6 +72,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2">
+                {/* Real-time Notification Bell */}
+                <NotificationBell />
+                
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}

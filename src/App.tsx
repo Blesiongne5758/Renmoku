@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
+import { SocketProvider } from './components/SocketProvider';
 import Navbar from './components/Navbar';
 import LoadingScreen from './components/LoadingScreen';
 import LandingPage from './pages/LandingPage';
@@ -52,30 +53,32 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
-      <AnimatePresence>
-        {isLoading && (
-          <LoadingScreen onComplete={() => setIsLoading(false)} />
-        )}
-      </AnimatePresence>
+    <SocketProvider>
+      <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
+        <AnimatePresence>
+          {isLoading && (
+            <LoadingScreen onComplete={() => setIsLoading(false)} />
+          )}
+        </AnimatePresence>
 
-      {!isLoading && (
-        <>
-          <Navbar />
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {renderPage()}
-            </motion.main>
-          </AnimatePresence>
-        </>
-      )}
-    </div>
+        {!isLoading && (
+          <>
+            <Navbar />
+            <AnimatePresence mode="wait">
+              <motion.main
+                key={currentPage}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {renderPage()}
+              </motion.main>
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+    </SocketProvider>
   );
 }
 
