@@ -1,8 +1,4 @@
 /**
- * Utility functions untuk Renmoku
- */
-
-/**
  * Format angka ke format mata uang Rupiah
  */
 export const formatCurrency = (amount: number): string => {
@@ -31,26 +27,6 @@ export const formatNumber = (num: number): string => {
 };
 
 /**
- * Hitung durasi dalam hari antara dua tanggal
- */
-export const calculateDuration = (startDate: string, endDate: string): number => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
-};
-
-/**
- * Hitung diskon berdasarkan durasi sewa
- */
-export const getDurationDiscount = (days: number): number => {
-  if (days >= 30) return 25; // Bulanan
-  if (days >= 7) return 10; // Mingguan
-  return 0; // Harian
-};
-
-/**
  * Format tanggal ke format Indonesia
  */
 export const formatDate = (date: string | Date, format: 'short' | 'long' = 'short'): string => {
@@ -73,51 +49,39 @@ export const formatDate = (date: string | Date, format: 'short' | 'long' = 'shor
 };
 
 /**
- * Format tanggal ke format ISO (YYYY-MM-DD)
+ * Format waktu relatif (contoh: "2 jam yang lalu")
  */
-export const formatDateISO = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
+export const formatRelativeTime = (date: string | Date): string => {
+  const d = new Date(date);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
 
-/**
- * Validasi email
- */
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+  if (diffInSeconds < 60) {
+    return 'Baru saja';
+  }
 
-/**
- * Validasi nomor telepon Indonesia
- */
-export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
-};
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} menit yang lalu`;
+  }
 
-/**
- * Validasi NIK (16 digit)
- */
-export const isValidNIK = (nik: string): boolean => {
-  return /^\d{16}$/.test(nik);
-};
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} jam yang lalu`;
+  }
 
-/**
- * Generate booking number
- */
-export const generateBookingNumber = (): string => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `BK-${timestamp}-${random}`;
-};
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} hari yang lalu`;
+  }
 
-/**
- * Generate payment number
- */
-export const generatePaymentNumber = (): string => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `PAY-${timestamp}-${random}`;
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} bulan yang lalu`;
+  }
+
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} tahun yang lalu`;
 };
 
 /**
@@ -127,7 +91,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeout: ReturnType<typeof setTimeout>;
+  let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -152,37 +116,35 @@ export const throttle = <T extends (...args: any[]) => any>(
 };
 
 /**
- * Sleep function (untuk demo/testing)
+ * Generate random ID
  */
-export const sleep = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export const generateId = (prefix: string = ''): string => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return prefix ? `${prefix}-${timestamp}-${random}` : `${timestamp}-${random}`;
 };
 
 /**
- * Capitalize first letter
+ * Validate email
  */
-export const capitalize = (str: string): string => {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
 /**
- * Truncate text
+ * Validate phone number (Indonesia)
  */
-export const truncate = (str: string, length: number): string => {
-  if (str.length <= length) return str;
-  return str.slice(0, length) + '...';
+export const isValidPhone = (phone: string): boolean => {
+  const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ''));
 };
 
 /**
- * Get initials from name
+ * Validate KTP number (16 digits)
  */
-export const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+export const isValidKTP = (ktp: string): boolean => {
+  return /^\d{16}$/.test(ktp);
 };
 
 /**
@@ -202,100 +164,133 @@ export const calculateAge = (birthDate: string | Date): number => {
 };
 
 /**
- * Check if date is in the past
+ * Get initials from name
  */
-export const isDateInPast = (date: string | Date): boolean => {
-  const d = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d < today;
+export const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 };
 
 /**
- * Get relative time (e.g., "2 jam yang lalu")
+ * Truncate text
  */
-export const getRelativeTime = (date: string | Date): string => {
-  const d = new Date(date);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return 'Baru saja';
-  }
-  
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} menit yang lalu`;
-  }
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} jam yang lalu`;
-  }
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays} hari yang lalu`;
-  }
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths} bulan yang lalu`;
-  }
-  
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} tahun yang lalu`;
+export const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
 };
 
 /**
- * Local storage helpers
+ * Copy to clipboard
+ */
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    console.error('Failed to copy:', error);
+    return false;
+  }
+};
+
+/**
+ * Download file from URL
+ */
+export const downloadFile = (url: string, filename: string): void => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+/**
+ * Format file size
+ */
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+/**
+ * Check if device is mobile
+ */
+export const isMobile = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+/**
+ * Check if device is iOS
+ */
+export const isIOS = (): boolean => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+};
+
+/**
+ * Get browser language
+ */
+export const getBrowserLanguage = (): string => {
+  return navigator.language.split('-')[0];
+};
+
+/**
+ * Local storage helper
  */
 export const storage = {
   get: <T>(key: string): T | null => {
     try {
-      const item = window.localStorage.getItem(key);
+      const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : null;
     } catch (error) {
-      console.error(`Error getting key "${key}" from localStorage:`, error);
+      console.error('Error reading from localStorage:', error);
       return null;
     }
   },
   
   set: <T>(key: string, value: T): void => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Error setting key "${key}" to localStorage:`, error);
+      console.error('Error writing to localStorage:', error);
     }
   },
   
   remove: (key: string): void => {
     try {
-      window.localStorage.removeItem(key);
+      localStorage.removeItem(key);
     } catch (error) {
-      console.error(`Error removing key "${key}" from localStorage:`, error);
+      console.error('Error removing from localStorage:', error);
     }
   },
   
   clear: (): void => {
     try {
-      window.localStorage.clear();
+      localStorage.clear();
     } catch (error) {
       console.error('Error clearing localStorage:', error);
     }
-  },
+  }
 };
 
 /**
- * Session storage helpers
+ * Session storage helper
  */
-export const sessionStorage = {
+export const sessionStore = {
   get: <T>(key: string): T | null => {
     try {
       const item = window.sessionStorage.getItem(key);
       return item ? JSON.parse(item) : null;
     } catch (error) {
-      console.error(`Error getting key "${key}" from sessionStorage:`, error);
+      console.error('Error reading from sessionStorage:', error);
       return null;
     }
   },
@@ -304,7 +299,7 @@ export const sessionStorage = {
     try {
       window.sessionStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Error setting key "${key}" to sessionStorage:`, error);
+      console.error('Error writing to sessionStorage:', error);
     }
   },
   
@@ -312,7 +307,7 @@ export const sessionStorage = {
     try {
       window.sessionStorage.removeItem(key);
     } catch (error) {
-      console.error(`Error removing key "${key}" from sessionStorage:`, error);
+      console.error('Error removing from sessionStorage:', error);
     }
   },
   
@@ -322,5 +317,5 @@ export const sessionStorage = {
     } catch (error) {
       console.error('Error clearing sessionStorage:', error);
     }
-  },
+  }
 };
