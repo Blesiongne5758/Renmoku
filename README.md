@@ -1,4 +1,4 @@
-# 🚗 Renmoku - Premium Car Rental Platform
+# 🚗 Renmoku - Rental Mobil Ku
 
 > Platform rental mobil premium dengan fitur lengkap, modern, dan production-ready
 
@@ -682,4 +682,4 @@ Jika Anda menemukan proyek ini bermanfaat, berikan bintang ⭐ di GitHub!
 
 **Made with ❤️ by Renmoku Team**
 
-*Premium Car Rental Platform - Modern, Secure, Scalable*
+*Rental Mobil Ku - Modern, Secure, Scalable*

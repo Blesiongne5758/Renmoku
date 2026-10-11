@@ -317,7 +317,7 @@ doc.text('RENMOKU', 20, 25);
 
 doc.setTextColor(255, 255, 255);
 doc.setFontSize(10);
-doc.text('Premium Car Rental', 20, 32);
+doc.text('Rental Mobil Ku', 20, 32);
 ```
 
 ### Table Themes

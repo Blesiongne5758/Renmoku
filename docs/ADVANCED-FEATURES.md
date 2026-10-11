@@ -144,7 +144,7 @@ Renmoku sekarang dapat diinstall sebagai aplikasi mobile melalui PWA.
 #### manifest.json (`public/manifest.json`)
 ```json
 {
-  "name": "Renmoku - Premium Car Rental",
+  "name": "Renmoku - Rental Mobil Ku",
   "short_name": "Renmoku",
   "description": "Platform rental mobil premium...",
   "start_url": "/",
