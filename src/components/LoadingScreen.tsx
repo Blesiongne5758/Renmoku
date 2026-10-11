@@ -61,7 +61,7 @@ export default function LoadingScreen({ onComplete }: { onComplete: () => void }
           transition={{ delay: 0.3 }}
           className="text-gray-600 text-xs tracking-[0.3em] uppercase mb-8"
         >
-          Premium Car Rental
+          Rental Mobil Ku
         </motion.p>
 
         {/* Progress bar - Neumorphic */}

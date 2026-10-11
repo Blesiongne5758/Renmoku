@@ -24,7 +24,7 @@ export function exportBookingToPDF(booking: any) {
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.text('Premium Car Rental', 20, 32);
+  doc.text('Rental Mobil Ku', 20, 32);
   
   // Title
   doc.setTextColor(0, 0, 0);
