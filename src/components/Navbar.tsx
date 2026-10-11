@@ -1,15 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Car, User, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores/useAppStore';
 import NotificationBell from './NotificationBell';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
+  const { t } = useTranslation();
   const { currentPage, setCurrentPage, isMenuOpen, setMenuOpen, currentUser, isAuthenticated, logout } = useAppStore();
 
   const navItems = [
-    { id: 'home', label: 'Beranda' },
-    { id: 'fleet', label: 'Armada' },
-    { id: 'dashboard', label: 'Dashboard', requireAuth: true },
+    { id: 'home', label: t('nav.home') },
+    { id: 'fleet', label: t('nav.fleet') },
+    { id: 'dashboard', label: t('nav.dashboard'), requireAuth: true },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.requireAuth || isAuthenticated);
@@ -69,6 +72,9 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
             {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2">
                 {/* Real-time Notification Bell */}
