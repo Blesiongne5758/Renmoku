@@ -1,0 +1,301 @@
+// ============================================================================
+// RENMOKU - Premium Car Rental Platform
+// Prisma Schema (PostgreSQL)
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  phone         String
+  password      String
+  role          UserRole    @default(RENTER)
+  status        UserStatus  @default(PENDING)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  renterIndividual  RenterIndividual?
+  renterCorporate   RenterCorporate?
+  fleetOwner        FleetOwner?
+  bookings          Booking[]
+  payments          Payment[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  RENTER    // Penyewa (Individual/Corporate)
+  OWNER     // Pemilik armada
+  ADMIN     // Admin platform
+}
+
+enum UserStatus {
+  PENDING     // Menunggu verifikasi
+  VERIFIED    // Sudah diverifikasi
+  REJECTED    // Ditolak
+}
+
+// ============================================================================
+// RENTER PROFILES
+// ============================================================================
+
+model RenterIndividual {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Personal Info
+  fullName    String
+  ktpNumber   String
+  ktpScan     String    // URL file scan KTP
+  simNumber   String
+  simScan     String    // URL file scan SIM
+  kkScan      String    // URL file scan KK
+  address     String
+  
+  // Verification
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("renter_individuals")
+}
+
+model RenterCorporate {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Company Info
+  companyName     String
+  nib             String
+  nibDocument     String    // URL file NIB
+  akta            String    // URL file Akta
+  npwp            String
+  npwpDocument    String    // URL file NPWP
+  
+  // PIC (Person in Charge)
+  picName         String
+  picKtp          String
+  picKtpScan      String    // URL file KTP PIC
+  picSim          String
+  picSimScan      String    // URL file SIM PIC
+  
+  // Verification
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@map("renter_corporates")
+}
+
+// ============================================================================
+// FLEET OWNER
+// ============================================================================
+
+model FleetOwner {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Business Info
+  businessName    String
+  bankAccount     String
+  bankName        String
+  
+  // Verification
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  vehicles        Vehicle[]
+  
+  @@map("fleet_owners")
+}
+
+// ============================================================================
+// VEHICLE
+// ============================================================================
+
+model Vehicle {
+  id                String          @id @default(cuid())
+  ownerId           String
+  owner             FleetOwner      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  // Basic Info
+  brand             String
+  model             String
+  year              Int
+  transmission      Transmission
+  capacity          Int
+  fuelType          String
+  features          String[]
+  
+  // Pricing
+  priceDaily        Float
+  priceWeekly       Float
+  priceMonthly      Float
+  hasDriverOption   Boolean         @default(false)
+  driverPriceDaily  Float?
+  
+  // Status & Location
+  status            VehicleStatus   @default(AVAILABLE)
+  location          String
+  
+  // Media
+  images            String[]        // Array of image URLs
+  model3D           String?         // URL 3D model (optional)
+  
+  // Timestamps
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  // Relations
+  bookings          Booking[]
+  
+  @@index([ownerId])
+  @@index([status])
+  @@index([location])
+  @@map("vehicles")
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum VehicleStatus {
+  AVAILABLE     // Tersedia untuk disewa
+  RENTED        // Sedang disewa
+  MAINTENANCE   // Dalam perawatan
+  INACTIVE      // Tidak aktif
+}
+
+// ============================================================================
+// BOOKING
+// ============================================================================
+
+model Booking {
+  id              String          @id @default(cuid())
+  
+  // Parties
+  renterId        String
+  renter          User            @relation(fields: [renterId], references: [id])
+  vehicleId       String
+  vehicle         Vehicle         @relation(fields: [vehicleId], references: [id])
+  
+  // Rental Details
+  startDate       DateTime
+  endDate         DateTime
+  durationType    DurationType
+  withDriver      Boolean         @default(false)
+  
+  // Pricing
+  totalPrice      Float
+  dpAmount        Float
+  
+  // Trip Info
+  tripOrigin      String
+  tripDestination String
+  tripPurpose     String
+  
+  // Guarantee
+  guaranteeType   GuaranteeType
+  guaranteeDoc    String?         // URL file dokumen jaminan
+  
+  // Status
+  status          BookingStatus   @default(PENDING)
+  contractSigned  Boolean         @default(false)
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  payments        Payment[]
+  
+  @@index([renterId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("bookings")
+}
+
+enum DurationType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum GuaranteeType {
+  KTP                 // KTP asli
+  BPKB                // BPKB kendaraan
+  CASH                // Uang tunai
+  GUARANTEE_LETTER    // Surat jaminan (corporate)
+}
+
+enum BookingStatus {
+  PENDING     // Menunggu konfirmasi owner
+  CONFIRMED   // Sudah dikonfirmasi, menunggu pembayaran
+  ACTIVE      // Sedang dalam masa sewa
+  COMPLETED   // Selesai
+  CANCELLED   // Dibatalkan
+}
+
+// ============================================================================
+// PAYMENT
+// ============================================================================
+
+model Payment {
+  id              String          @id @default(cuid())
+  
+  // Relations
+  bookingId       String
+  booking         Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+  
+  // Payment Details
+  type            PaymentType
+  amount          Float
+  method          String          // "bank_transfer", "credit_card", "ewallet", etc.
+  status          PaymentStatus   @default(PENDING)
+  
+  // Transaction Info
+  transactionId   String?         // ID dari payment gateway
+  paidAt          DateTime?
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@index([bookingId])
+  @@index([status])
+  @@map("payments")
+}
+
+enum PaymentType {
+  DP              // Down Payment
+  FULL_PAYMENT    // Pelunasan
+}
+
+enum PaymentStatus {
+  PENDING     // Menunggu pembayaran
+  PAID        // Sudah dibayar
+  FAILED      // Pembayaran gagal
+  REFUNDED    // Dana dikembalikan
+}
