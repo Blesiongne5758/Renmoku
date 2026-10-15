@@ -74,6 +74,13 @@ export const config = {
     s3Endpoint: process.env.AWS_S3_ENDPOINT || '',
   },
 
+  // Cloudinary (Media Optimization)
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
+
   // Socket.io
   socket: {
     corsOrigin: process.env.SOCKET_IO_CORS_ORIGIN || 'http://localhost:5173',
