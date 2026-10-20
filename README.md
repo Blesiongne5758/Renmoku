@@ -508,6 +508,40 @@ docker build -t renmoku .
 docker run -p 80:80 renmoku
 ```
 
+#### InfinityFree + Supabase + Cloudinary (Free Stack)
+```bash
+# 1. Setup Supabase
+# - Create project at https://supabase.com
+# - Run supabase/schema.sql
+# - Get API credentials
+
+# 2. Setup Cloudinary
+# - Create account at https://cloudinary.com
+# - Create upload preset
+# - Get credentials
+
+# 3. Setup InfinityFree
+# - Create account at https://www.infinityfree.net
+# - Get FTP credentials
+
+# 4. Configure frontend
+cp .env.example .env
+# Edit .env dengan credentials dari Supabase & Cloudinary
+
+# 5. Build
+npm run build
+
+# 6. Upload to InfinityFree
+# Upload contents of /dist folder via FTP to /htdocs/
+
+# See docs/DEPLOYMENT-INFINITYFREE.md for detailed guide
+```
+
+**Cost**: $0/month (Free tier)
+- Supabase: 500MB DB, 5GB bandwidth, 50K MAU
+- Cloudinary: 25GB storage, 25GB bandwidth
+- InfinityFree: Unlimited disk & bandwidth
+
 ### Environment Variables
 ```env
 # API
@@ -547,6 +581,11 @@ VITE_ENABLE_I18N=true
 ### Backend Templates
 - **[BACKEND-IMPLEMENTATION.md](docs/BACKEND-IMPLEMENTATION.md)** - Next.js backend setup
 - **[NEXTAUTH-SYSTEM.md](docs/NEXTAUTH-SYSTEM.md)** - NextAuth configuration
+
+### Deployment & Infrastructure
+- **[DEPLOYMENT-INFINITYFREE.md](docs/DEPLOYMENT-INFINITYFREE.md)** - InfinityFree + Supabase + Cloudinary deployment
+- **[FILE-STORAGE-ARCHITECTURE.md](docs/FILE-STORAGE-ARCHITECTURE.md)** - File storage & media architecture
+- **[ADMIN-CONFIG-BLOCKCHAIN.md](docs/ADMIN-CONFIG-BLOCKCHAIN.md)** - Admin config & blockchain wallet
 
 ---
 
