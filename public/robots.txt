@@ -1,0 +1,34 @@
+# Robot.txt untuk Renmoku - Rental Mobil Premium
+# https://renmoku.infinityfreeapp.com
+
+# Izinkan semua crawler untuk mengakses halaman publik
+User-agent: *
+Allow: /
+
+# Halaman yang tidak boleh di-crawl
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /auth
+Disallow: /payment/success
+Disallow: /payment/failed
+Disallow: /api/
+Disallow: /backend/
+
+# Sitemap
+Sitemap: https://renmoku.infinityfreeapp.com/sitemap.xml
+
+# Crawl-delay untuk menghindari overload server
+Crawl-delay: 10
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 10
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 10
