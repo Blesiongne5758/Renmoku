@@ -1,22 +1,20 @@
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
 import { CheckCircle, Download, Calendar, MapPin, Clock, Car, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { formatCurrency } from '../data/mockData';
 
 export default function PaymentSuccessPage() {
-  const [searchParams] = useSearchParams();
-  const { setCurrentPage } = useAppStore();
+  const { setCurrentPage, currentBooking } = useAppStore();
 
-  // Get payment details from URL params
-  const bookingId = searchParams.get('booking_id') || 'BK-' + Date.now().toString(36).toUpperCase();
-  const transactionId = searchParams.get('transaction_id') || 'TRX-' + Date.now().toString(36).toUpperCase();
-  const amount = parseInt(searchParams.get('amount') || '0');
-  const paymentMethod = searchParams.get('method') || 'Bank Transfer';
-  const vehicleName = searchParams.get('vehicle') || 'Toyota Alphard';
-  const startDate = searchParams.get('start_date') || '2026-10-20';
-  const endDate = searchParams.get('end_date') || '2026-10-25';
-  const pickupLocation = searchParams.get('pickup') || 'Jakarta';
+  // Get payment details from store or use defaults
+  const bookingId = currentBooking?.id || 'BK-' + Date.now().toString(36).toUpperCase();
+  const transactionId = 'TRX-' + Date.now().toString(36).toUpperCase();
+  const amount = currentBooking?.totalPrice || 0;
+  const paymentMethod = 'Bank Transfer';
+  const vehicleName = currentBooking?.vehicleName || 'Toyota Alphard';
+  const startDate = currentBooking?.startDate || '2026-10-20';
+  const endDate = currentBooking?.endDate || '2026-10-25';
+  const pickupLocation = currentBooking?.pickupLocation || 'Jakarta';
 
   const handleDownloadInvoice = () => {
     // Trigger PDF download

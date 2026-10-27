@@ -1,17 +1,15 @@
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
 import { XCircle, AlertTriangle, RefreshCw, Home, ArrowRight, Phone, Mail } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 
 export default function PaymentFailedPage() {
-  const [searchParams] = useSearchParams();
-  const { setCurrentPage } = useAppStore();
+  const { setCurrentPage, currentBooking } = useAppStore();
 
-  // Get error details from URL params
-  const bookingId = searchParams.get('booking_id') || 'BK-UNKNOWN';
-  const errorCode = searchParams.get('error_code') || 'PAYMENT_FAILED';
-  const errorMessage = searchParams.get('message') || 'Pembayaran tidak dapat diproses';
-  const paymentMethod = searchParams.get('method') || 'Bank Transfer';
+  // Get error details from store or use defaults
+  const bookingId = currentBooking?.id || 'BK-UNKNOWN';
+  const errorCode = 'PAYMENT_FAILED';
+  const errorMessage = 'Pembayaran tidak dapat diproses';
+  const paymentMethod = 'Bank Transfer';
 
   const handleRetryPayment = () => {
     setCurrentPage('booking');

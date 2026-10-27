@@ -144,42 +144,49 @@ export function useRealtime(userId: string | null) {
     socket?.on('connect', handleConnect);
     socket?.on('disconnect', handleDisconnect);
 
+    // Booking status updates
+    const handleBookingUpdate = (data: BookingStatusUpdate) => {
+      setBookingUpdates(prev => [data, ...prev]);
+      
+      // Show browser notification
+      if (Notification.permission === 'granted') {
+        new Notification('Renmoku', {
+          body: data.message,
+          icon: '/logo.png',
+        });
+      }
+    };
+
+    // New bookings (for owners)
+    const handleNewBooking = (data: NewBookingNotification) => {
+      setNewBookings(prev => [data, ...prev]);
+      
+      if (Notification.permission === 'granted') {
+        new Notification('Booking Baru!', {
+          body: `${data.renterName} ingin menyewa ${data.vehicleName}`,
+          icon: '/logo.png',
+        });
+      }
+    };
+
+    // General notifications
+    const handleNotification = (data: GeneralNotification) => {
+      setNotifications(prev => [data, ...prev]);
+    };
+
+    socketClient.onBookingStatusUpdate(handleBookingUpdate);
+    socketClient.onNewBooking(handleNewBooking);
+    socketClient.onNotification(handleNotification);
+
     return () => {
       socket?.off('connect', handleConnect);
       socket?.off('disconnect', handleDisconnect);
+      socketClient.off('booking_status_update', handleBookingUpdate);
+      socketClient.off('new_booking', handleNewBooking);
+      socketClient.off('notification', handleNotification);
       socketClient.disconnect();
     };
   }, [userId]);
-
-  // Booking status updates
-  useBookingStatusUpdates(useCallback((data: BookingStatusUpdate) => {
-    setBookingUpdates(prev => [data, ...prev]);
-    
-    // Show browser notification
-    if (Notification.permission === 'granted') {
-      new Notification('Renmoku', {
-        body: data.message,
-        icon: '/logo.png',
-      });
-    }
-  }, []));
-
-  // New bookings (for owners)
-  useNewBookings(useCallback((data: NewBookingNotification) => {
-    setNewBookings(prev => [data, ...prev]);
-    
-    if (Notification.permission === 'granted') {
-      new Notification('Booking Baru!', {
-        body: `${data.renterName} ingin menyewa ${data.vehicleName}`,
-        icon: '/logo.png',
-      });
-    }
-  }, []));
-
-  // General notifications
-  useNotifications(useCallback((data: GeneralNotification) => {
-    setNotifications(prev => [data, ...prev]);
-  }, []));
 
   return {
     isConnected,

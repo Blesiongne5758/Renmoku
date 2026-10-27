@@ -1,4 +1,3 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { SocketProvider } from './components/SocketProvider';
 import Navbar from './components/Navbar';
@@ -76,46 +75,32 @@ function App() {
 
   return (
     <SocketProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
-          <LoadingScreen onComplete={() => setIsLoading(false)} />
+      <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
+        <LoadingScreen onComplete={() => setIsLoading(false)} />
 
-          {!isLoading && (
-            <>
-              <Navbar />
-              <Routes>
-                <Route path="/" element={renderPage()} />
-                <Route path="/fleet" element={<FleetPage />} />
-                <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
-                <Route path="/booking" element={<BookingFlow />} />
-                <Route path="/booking/success" element={<SuccessPage />} />
-                <Route path="/dashboard" element={renderPage()} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                <Route path="/payment/success" element={<PaymentSuccessPage />} />
-                <Route path="/payment/failed" element={<PaymentFailedPage />} />
-              </Routes>
-              
-              {/* Real-time Notification System */}
-              <RealtimeNotifier />
-              
-              {/* Toast Notifications */}
-              <Toaster 
-                position="top-right" 
-                theme="dark"
-                toastOptions={{
-                  style: {
-                    background: '#1a1a1a',
-                    border: '1px solid rgba(212, 175, 55, 0.2)',
-                    color: '#fff',
-                  },
-                }}
-              />
-            </>
-          )}
-        </div>
-      </BrowserRouter>
+        {!isLoading && (
+          <>
+            <Navbar />
+            {renderPage()}
+            
+            {/* Real-time Notification System */}
+            <RealtimeNotifier />
+            
+            {/* Toast Notifications */}
+            <Toaster 
+              position="top-right" 
+              theme="dark"
+              toastOptions={{
+                style: {
+                  background: '#1a1a1a',
+                  border: '1px solid rgba(212, 175, 55, 0.2)',
+                  color: '#fff',
+                },
+              }}
+            />
+          </>
+        )}
+      </div>
     </SocketProvider>
   );
 }

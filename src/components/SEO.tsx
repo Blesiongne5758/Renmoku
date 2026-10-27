@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useAppStore } from '../stores/useAppStore';
 
 interface SEOProps {
   title?: string;
@@ -20,8 +20,8 @@ export default function SEO({
   type = 'website',
   structuredData,
 }: SEOProps) {
-  const location = useLocation();
-  const currentUrl = url || `https://renmoku.infinityfreeapp.com${location.pathname}`;
+  const { currentPage } = useAppStore();
+  const currentUrl = url || `https://renmoku.infinityfreeapp.com/${currentPage === 'home' ? '' : currentPage}`;
 
   useEffect(() => {
     // Update document title
