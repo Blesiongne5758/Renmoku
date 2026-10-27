@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { 
   LayoutDashboard, Car, Calendar, DollarSign, 
-  CheckCircle, TrendingUp, Settings, Bell, LogOut, Plus
+  CheckCircle, TrendingUp, Settings, Bell, LogOut, Plus, Navigation
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { StatsCard, RevenueChart, FleetStatus, RecentBookings } from './dashboard';
@@ -10,6 +10,7 @@ import { StatsCard, RevenueChart, FleetStatus, RecentBookings } from './dashboar
 const sidebarMenu = [
   { icon: LayoutDashboard, label: 'Overview', href: '#', active: true },
   { icon: Car, label: 'Fleet', href: '#' },
+  { icon: Navigation, label: 'GPS Tracking', href: '#', page: 'vehicle-monitoring' },
   { icon: Calendar, label: 'Bookings', href: '#' },
   { icon: DollarSign, label: 'Revenue', href: '#' },
   { icon: CheckCircle, label: 'Check-in/out', href: '#' },
@@ -46,13 +47,13 @@ export default function OwnerDashboardNew() {
         {/* Menu */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarMenu.map((item, idx) => (
-            <motion.a
+            <motion.button
               key={item.label}
-              href={item.href}
+              onClick={() => item.page && useAppStore.getState().setCurrentPage(item.page)}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                 item.active
                   ? 'bg-gradient-to-r from-yellow-400/20 to-transparent border border-yellow-400/30 text-yellow-400'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -66,7 +67,7 @@ export default function OwnerDashboardNew() {
                   className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50"
                 />
               )}
-            </motion.a>
+            </motion.button>
           ))}
         </nav>
 

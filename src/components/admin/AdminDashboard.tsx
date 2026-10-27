@@ -26,6 +26,7 @@ import {
   User,
   FileText,
   Gavel,
+  Navigation,
 } from 'lucide-react';
 import {
   LineChart,
@@ -51,6 +52,7 @@ const sidebarMenu = [
   { icon: Users, label: 'Users', href: '#' },
   { icon: Car, label: 'Vehicles', href: '#' },
   { icon: Calendar, label: 'Bookings', href: '#' },
+  { icon: Navigation, label: 'GPS Tracking', href: '#', page: 'admin-gps-settings' },
   { icon: CheckCircle, label: 'Verifikasi', href: '#', badge: 12 },
   { icon: DollarSign, label: 'Payout', href: '#', badge: 3 },
   { icon: AlertTriangle, label: 'Dispute', href: '#', badge: 5 },
@@ -171,13 +173,13 @@ export default function AdminDashboard() {
         {/* Menu */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {sidebarMenu.map((item, idx) => (
-            <motion.a
+            <motion.button
               key={item.label}
-              href={item.href}
+              onClick={() => item.page && useAppStore.getState().setCurrentPage(item.page)}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${
                 item.active
                   ? 'bg-gradient-to-r from-yellow-400/20 to-transparent border border-yellow-400/30 text-yellow-400'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -196,7 +198,7 @@ export default function AdminDashboard() {
                   className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50"
                 />
               )}
-            </motion.a>
+            </motion.button>
           ))}
         </nav>
 

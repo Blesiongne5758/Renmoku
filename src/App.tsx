@@ -19,6 +19,8 @@ import TermsPage from './pages/TermsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
+import AdminGPSSettings from './pages/admin/AdminGPSSettings';
+import VehicleMonitoring from './pages/owner/VehicleMonitoring';
 
 import { useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
@@ -68,6 +70,13 @@ function App() {
         return <PaymentSuccessPage />;
       case 'payment-failed':
         return <PaymentFailedPage />;
+      case 'admin-gps-settings':
+        return <AdminGPSSettings />;
+      case 'vehicle-monitoring':
+        // Get vehicle info from store or use default
+        const vehicleId = useAppStore.getState().selectedVehicle?.id || 'vehicle-1';
+        const vehicleName = useAppStore.getState().selectedVehicle?.name || 'Toyota Alphard';
+        return <VehicleMonitoring vehicleId={vehicleId} vehicleName={vehicleName} />;
       default:
         return <LandingPage />;
     }
