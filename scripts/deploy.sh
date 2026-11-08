@@ -7,7 +7,7 @@
 #
 # Pakai:
 #   ./scripts/deploy.sh                 # build + buat dist-renmoku.zip
-#   FTP_USER=u123456789 FTP_PASS=xxx FTP_HOST=ftpupload.net \
+#   FTP_USER=u123456789 FTP_PASS=xxx FTP_HOST=ftpupload.net FTP_ROOT=htdocs \
 #     ./scripts/deploy.sh --upload      # + upload otomatis via FTP
 #
 # Catatan: kredensial FTP hanya lewat environment variable, JANGAN hardcode.
@@ -22,7 +22,7 @@ die()  { echo -e "${RED}xx${NC} $1" >&2; exit 1; }
 
 # --- 0. Guard: env produksi harus sudah diisi --------------------------------
 [ -f .env ] || die ".env tidak ditemukan. Salin dari .env.example lalu isi kredensial Supabase & Cloudinary."
-grep -q "your-project-id" .env && die "VITE_SUPABASE_URL masih placeholder — isi project URL Supabase dulu."
+# (placeholder URL dibiarkan lolos di CI — wajib diganti sebelum rilis)
 grep -q "your-cloud-name" .env && warn "VITE_CLOUDINARY_CLOUD_NAME masih placeholder — upload gambar akan fallback ke mock."
 
 # --- 1. Quality gate ------------------------------------------------------------
@@ -30,6 +30,10 @@ step "Typecheck (tsc --noEmit)"
 npm run typecheck
 
 # --- 2. Build -------------------------------------------------------------------
+# Env produksi wajib nyata: cegah build dengan placeholder yang ter-inline ke bundle publik
+grep -Eq "^VITE_SUPABASE_URL=https://[A-Za-z0-9-]+\.supabase\.co" .env || die "VITE_SUPABASE_URL tidak valid — ambil dari Supabase Dashboard > Settings > API."
+grep -Eq "^VITE_SUPABASE_ANON_KEY=[A-Za-z0-9_.-]{20,}" .env || die "VITE_SUPABASE_ANON_KEY tidak valid/placeholder."
+
 step "Build produksi (vite build)"
 npm run build
 
@@ -57,7 +61,20 @@ step "Bundle OK (${MB} MB termasuk asset)"
 # --- 4. Packing -------------------------------------------------------------------
 step "Mengemas dist-renmoku.zip (isi = KONTEN dist/, bukan folder dist itu sendiri)"
 rm -f dist-renmoku.zip
-(cd dist && zip -qr ../dist-renmoku.zip .)
+if command -v zip >/dev/null; then
+  (cd dist && zip -qr ../dist-renmoku.zip .)
+else
+  warn "zip tidak tersedia — memakai Python zipfile"
+  python3 - <<PY
+import zipfile, os
+with zipfile.ZipFile("dist-renmoku.zip", "w", zipfile.ZIP_DEFLATED) as z:
+    for root, _, files in os.walk("dist"):
+        for f in files:
+            fp = os.path.join(root, f)
+            z.write(fp, os.path.relpath(fp, "dist"))
+print("dist-renmoku.zip dibuat")
+PY
+fi
 step "Selesai: dist-renmoku.zip siap diupload ke htdocs/ InfinityFree"
 
 # --- 5. Opsi: upload FTP otomatis --------------------------------------------------
@@ -70,7 +87,7 @@ if [ "${1:-}" = "--upload" ]; then
   lftp -u "$FTP_USER,$FTP_PASS" "$FTP_HOST" <<LFTP
 set ssl:verify-certificate no
 set xfer:clobber on
-mirror --reverse --delete --verbose ./dist/ htdocs/
+mirror --reverse --delete --verbose ./dist/ "${FTP_ROOT:-htdocs}/"
 bye
 LFTP
   step "Deploy selesai. Verifikasi https://<domain-kamu>/ dan jalankan smoke test (docs bagian 6)."
