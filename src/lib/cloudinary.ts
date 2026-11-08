@@ -1,12 +1,14 @@
-import { v2 as cloudinary } from 'cloudinary';
+// ============================================================================
+// Cloudinary — CLIENT-ONLY (serverless path: InfinityFree + Supabase)
+// ----------------------------------------------------------------------------
+// PENTING: Vars dengan prefix VITE_* akan ter-inline ke bundle publik.
+// API SECRET tidak boleh ada di frontend. Semua upload memakai UNSIGNED
+// upload preset (kontrol folder/size/format dilakukan di preset dashboard).
+// Signed upload & signed URL dokumen KYC dijalankan via Supabase Edge Function.
+// ============================================================================
 
-// Cloudinary configuration
-cloudinary.config({
-  cloud_name: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your-cloud-name',
-  api_key: import.meta.env.VITE_CLOUDINARY_API_KEY || 'your-api-key',
-  api_secret: import.meta.env.VITE_CLOUDINARY_API_SECRET || 'your-api-secret',
-  secure: true,
-});
+export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
+export const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'renmoku_preset';
 
 // Helper functions
 export const cloudinaryHelpers = {
@@ -17,9 +19,11 @@ export const cloudinaryHelpers = {
     formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'renmoku_preset');
     formData.append('folder', folder);
 
+    if (!CLOUDINARY_CLOUD_NAME) throw new Error('Cloudinary belum dikonfigurasi (VITE_CLOUDINARY_CLOUD_NAME kosong).');
+
     try {
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         {
           method: 'POST',
           body: formData,
@@ -27,6 +31,7 @@ export const cloudinaryHelpers = {
       );
 
       const data = await response.json();
+      if (!response.ok) throw new Error(`Cloudinary error ${response.status}: ${data?.error?.message || 'upload ditolak'}`);
       return {
         publicId: data.public_id,
         url: data.secure_url,
@@ -49,9 +54,11 @@ export const cloudinaryHelpers = {
     formData.append('folder', folder);
     formData.append('resource_type', 'video');
 
+    if (!CLOUDINARY_CLOUD_NAME) throw new Error('Cloudinary belum dikonfigurasi (VITE_CLOUDINARY_CLOUD_NAME kosong).');
+
     try {
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/video/upload`,
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
         {
           method: 'POST',
           body: formData,
@@ -59,6 +66,7 @@ export const cloudinaryHelpers = {
       );
 
       const data = await response.json();
+      if (!response.ok) throw new Error(`Cloudinary error ${response.status}: ${data?.error?.message || 'upload ditolak'}`);
       return {
         publicId: data.public_id,
         url: data.secure_url,
@@ -87,7 +95,7 @@ export const cloudinaryHelpers = {
     if (height) transformation += `,h_${height}`;
     if (width && height) transformation += `,c_${crop}`;
 
-    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${transformation}/${publicId}`;
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformation}/${publicId}`;
   },
 
   // Get thumbnail

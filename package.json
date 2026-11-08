@@ -18,9 +18,12 @@
     "cloudinary": "^2.11.0",
     "date-fns": "^2.30.0",
     "ethers": "^6.17.0",
+    "file-saver": "^2.0.5",
     "framer-motion": "^11.16.1",
     "i18next": "^26.5.3",
     "i18next-browser-languagedetector": "^8.2.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -31,11 +34,13 @@
     "sonner": "^2.0.8",
     "uuid": "^9.0.1",
     "viem": "^2.57.7",
-    "web3": "^4.16.0"
+    "web3": "^4.16.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.7",
     "@types/canvas-confetti": "^1.6.4",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/uuid": "^9.0.7",
