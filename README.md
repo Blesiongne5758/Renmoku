@@ -583,8 +583,9 @@ VITE_ENABLE_I18N=true
 - **[NEXTAUTH-SYSTEM.md](docs/NEXTAUTH-SYSTEM.md)** - NextAuth configuration
 
 ### Deployment & Infrastructure
+- **[PRODUCTION-READINESS-DESIGN-CONCEPT.md](docs/PRODUCTION-READINESS-DESIGN-CONCEPT.md)** - ⭐ Design concept kelayakan produksi serverless (InfinityFree + Supabase + Cloudinary): arsitektur, analisis kuota, keamanan, UX spec, runbook & release checklist
 - **[DEPLOYMENT-INFINITYFREE.md](docs/DEPLOYMENT-INFINITYFREE.md)** - InfinityFree + Supabase + Cloudinary deployment
-- **[FILE-STORAGE-ARCHITECTURE.md](docs/FILE-STORAGE-ARCHITECTURE.md)** - File storage & media architecture
+- **[FILE-STORAGE-ARCHITECTURE.md](docs/FILE-STORAGE-ARCHITECTURE.md)** - File storage & media architecture (AWS S3 — scale-up path)
 - **[ADMIN-CONFIG-BLOCKCHAIN.md](docs/ADMIN-CONFIG-BLOCKCHAIN.md)** - Admin config & blockchain wallet
 
 ---
