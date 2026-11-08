@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+// Config wajib diisi via .env saat build (lihat .env.example).
+// Jangan gunakan placeholder: build akan GAGAL jika env belum diset.
+const supabaseUrl: string = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey: string = import.meta.env.VITE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Konfigurasi Supabase hilang. Set VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di .env sebelum `npm run build`.'
+  );
+}
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
