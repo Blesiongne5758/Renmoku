@@ -1,0 +1,66 @@
+# ============================================================================
+# RENMOKU - Apache config untuk InfinityFree (shared hosting, PHP-only)
+# Letakkan di htdocs/ bersama index.html hasil `npm run build`
+# ============================================================================
+
+# --- 1. Paksa HTTPS (Supabase Auth redirect harus https) -------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# --- 2. SPA Fallback: semua route -> index.html (React Router) --------------
+# Tanpa aturan ini, refresh di /booking atau /dashboard = 404 di InfinityFree
+<IfModule mod_rewrite.c>
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# --- 3. Caching agresif untuk hashed assets (Vite: nama file ada hash) -------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  # Assets bertanda hash -> aman cache 1 tahun (immutable)
+  <FilesMatch "\.(js|css|woff2|png|jpg|jpeg|webp|avif|svg|ico)$">
+    ExpiresDefault "access plus 1 year"
+    Header append Cache-Control "public, immutable"
+  </FilesMatch>
+  # HTML & service worker -> jangan cache (selalu fresh agar update tersampaikan)
+  <FilesMatch "\.(html|htm)$">
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <Files "sw.js">
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+</IfModule>
+
+# --- 4. Kompresi (hemat bandwidth fair-use InfinityFree ~5GB/hari) ----------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript \
+    application/json image/svg+xml text/plain
+</IfModule>
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/css application/javascript
+</IfModule>
+
+# --- 5. MIME type modern ------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+  AddType image/avif .avif
+  AddType image/webp .webp
+</IfModule>
+
+# --- 6. Security headers dasar ------------------------------------------------
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# --- 7. Blokir file sensitif dari akses publik --------------------------------
+<FilesMatch "^\.env|package(-lock)?\.json|composer\.(json|lock)$">
+  Require all denied
+</FilesMatch>
