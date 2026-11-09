@@ -137,3 +137,78 @@ CREATE POLICY "Owners read their files" ON storage.objects FOR SELECT TO authent
 DROP POLICY IF EXISTS "Admins review owner files" ON storage.objects;
 CREATE POLICY "Admins review owner files" ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'owner-private' AND EXISTS (SELECT 1 FROM public.users u WHERE u.id = (select auth.uid()) AND u.role = 'ADMIN'));
+
+-- Admin workspaces use a SECURITY DEFINER helper to avoid recursive users-table RLS checks.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (SELECT 1 FROM public.users WHERE id = (select auth.uid()) AND role = 'ADMIN');
+$$;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+
+DROP POLICY IF EXISTS "Admins can review vehicle submissions" ON public.owner_vehicle_submissions;
+CREATE POLICY "Admins can review vehicle submissions" ON public.owner_vehicle_submissions FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+DROP POLICY IF EXISTS "Admins can update vehicle submissions" ON public.owner_vehicle_submissions;
+CREATE POLICY "Admins can update vehicle submissions" ON public.owner_vehicle_submissions FOR UPDATE TO authenticated
+  USING ((select public.is_admin())) WITH CHECK ((select public.is_admin()));
+DROP POLICY IF EXISTS "Admins review owner files" ON storage.objects;
+CREATE POLICY "Admins review owner files" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'owner-private' AND (select public.is_admin()));
+
+DROP POLICY IF EXISTS "Admins can view all users" ON public.users;
+CREATE POLICY "Admins can view all users" ON public.users FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+CREATE POLICY "Users can update their own profile" ON public.users FOR UPDATE TO authenticated
+  USING (id = (select auth.uid())) WITH CHECK (id = (select auth.uid()));
+DROP POLICY IF EXISTS "Admins can update user status" ON public.users;
+CREATE POLICY "Admins can update user status" ON public.users FOR UPDATE TO authenticated
+  USING ((select public.is_admin())) WITH CHECK ((select public.is_admin()));
+GRANT SELECT, UPDATE ON public.users TO authenticated;
+
+DROP POLICY IF EXISTS "Admins can view all bookings" ON public.bookings;
+CREATE POLICY "Admins can view all bookings" ON public.bookings FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+DROP POLICY IF EXISTS "Admins can update bookings" ON public.bookings;
+CREATE POLICY "Admins can update bookings" ON public.bookings FOR UPDATE TO authenticated
+  USING ((select public.is_admin())) WITH CHECK ((select public.is_admin()));
+GRANT SELECT, UPDATE ON public.bookings TO authenticated;
+
+DROP POLICY IF EXISTS "Renters can view vehicles in their bookings" ON public.vehicles;
+CREATE POLICY "Renters can view vehicles in their bookings" ON public.vehicles FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.bookings b WHERE b.vehicle_id = vehicles.id AND b.renter_id = (select auth.uid())));
+DROP POLICY IF EXISTS "Admins can view all vehicles" ON public.vehicles;
+CREATE POLICY "Admins can view all vehicles" ON public.vehicles FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+
+DROP POLICY IF EXISTS "Admins can view all payments" ON public.payments;
+CREATE POLICY "Admins can view all payments" ON public.payments FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+GRANT SELECT ON public.payments TO authenticated;
+
+CREATE TABLE IF NOT EXISTS public.admin_disputes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id uuid REFERENCES public.bookings(id) ON DELETE SET NULL,
+  title text NOT NULL CHECK (char_length(title) BETWEEN 1 AND 120),
+  details text NOT NULL CHECK (char_length(details) BETWEEN 1 AND 3000),
+  status text NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'IN_REVIEW', 'RESOLVED')),
+  created_by uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+ALTER TABLE public.admin_disputes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins can read disputes" ON public.admin_disputes;
+CREATE POLICY "Admins can read disputes" ON public.admin_disputes FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+DROP POLICY IF EXISTS "Admins can create disputes" ON public.admin_disputes;
+CREATE POLICY "Admins can create disputes" ON public.admin_disputes FOR INSERT TO authenticated
+  WITH CHECK ((select public.is_admin()) AND created_by = (select auth.uid()));
+DROP POLICY IF EXISTS "Admins can update disputes" ON public.admin_disputes;
+CREATE POLICY "Admins can update disputes" ON public.admin_disputes FOR UPDATE TO authenticated
+  USING ((select public.is_admin())) WITH CHECK ((select public.is_admin()));
+GRANT SELECT, INSERT, UPDATE ON public.admin_disputes TO authenticated;

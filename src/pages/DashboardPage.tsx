@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Car, Calendar, CreditCard, FileText,
   TrendingUp, Clock, CheckCircle2, AlertCircle, ChevronRight,
   DollarSign, Users, BarChart3, Settings, LogOut, Shield,
-  Percent, Sliders, Save, Info, RotateCw, Camera, Eye
+  Percent, Sliders, Save, Info, RotateCw, Camera, Eye, User
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { mockBookings, formatCurrency } from '../data/mockData';
@@ -12,40 +12,84 @@ import { mockBookings, formatCurrency } from '../data/mockData';
 import { vehicles as mockVehicles } from '../data/mockData';
 import VehicleUpload360 from '../components/VehicleUpload360';
 import Vehicle360Viewer from '../components/Vehicle360Viewer';
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
-type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings';
+type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
+type RenterBooking = { id: string; vehicleName: string; startDate: string; endDate: string; duration: number; totalPrice: number; dpAmount: number; dpPercentage: number; bookingStatus: string; pickupLocation: string; dropoffLocation: string };
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [upload360Vehicle, setUpload360Vehicle] = useState<any>(null);
   const { currentUser, setCurrentUser, logout, ownerSettings, setOwnerSettings, setCurrentPage } = useAppStore();
 
-  // If not logged in, redirect to auth
+  const isOwner = currentUser?.role === 'owner';
+  const isAdmin = currentUser?.role === 'admin';
+  const isRenter = currentUser?.role === 'individual' || currentUser?.role === 'corporate';
+  const [renterBookings, setRenterBookings] = useState<RenterBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsError, setBookingsError] = useState('');
+  const [profileName, setProfileName] = useState(currentUser?.name ?? '');
+  const [profilePhone, setProfilePhone] = useState(currentUser?.phone ?? '');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const dashboardBookings = isRenter ? renterBookings : mockBookings;
+  const activeRenterBookings = renterBookings.filter((booking) => ['active', 'confirmed'].includes(booking.bookingStatus)).length;
+  const completedRenterBookings = renterBookings.filter((booking) => booking.bookingStatus === 'completed').length;
+
+  useEffect(() => {
+    if (!currentUser || !isRenter) return;
+    let cancelled = false;
+    setBookingsLoading(true);
+    void supabase.from('bookings').select('id,start_date,end_date,total_price,dp_amount,status,trip_origin,trip_destination,vehicle:vehicles(brand,model)')
+      .eq('renter_id', currentUser.id).order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) setBookingsError('Riwayat booking belum dapat dimuat. Silakan muat ulang halaman atau hubungi dukungan.');
+        else {
+          setBookingsError('');
+          setRenterBookings((data ?? []).map((item: any) => {
+            const start = new Date(item.start_date);
+            const end = new Date(item.end_date);
+            const vehicle = Array.isArray(item.vehicle) ? item.vehicle[0] : item.vehicle;
+            const duration = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
+            const total = Number(item.total_price ?? 0);
+            return {
+              id: item.id,
+              vehicleName: vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Kendaraan',
+              startDate: start.toLocaleDateString('id-ID'), endDate: end.toLocaleDateString('id-ID'), duration,
+              totalPrice: total, dpAmount: Number(item.dp_amount ?? 0), dpPercentage: total ? Math.round(Number(item.dp_amount ?? 0) / total * 100) : 0,
+              bookingStatus: String(item.status ?? 'PENDING').toLowerCase(), pickupLocation: item.trip_origin ?? '—', dropoffLocation: item.trip_destination ?? '—',
+            };
+          }));
+        }
+        setBookingsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [currentUser?.id, isRenter]);
+
+  const saveRenterProfile = async () => {
+    if (!currentUser) return;
+    setProfileSaving(true);
+    const { error } = await supabase.from('users').update({ full_name: profileName.trim(), phone: profilePhone.trim() }).eq('id', currentUser.id);
+    setProfileSaving(false);
+    if (error) return toast.error('Profil gagal diperbarui. Silakan coba kembali.');
+    setCurrentUser({ ...currentUser, name: profileName.trim(), phone: profilePhone.trim() });
+    toast.success('Profil berhasil diperbarui.');
+  };
+
+  // If not logged in, redirect to auth after all hooks have been called.
   if (!currentUser) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-8 max-w-md w-full border border-gold-500/10 text-center"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-8 max-w-md w-full border border-gold-500/10 text-center">
           <Shield className="w-16 h-16 text-gold-400 mx-auto mb-4" />
           <h2 className="font-[Playfair_Display] text-2xl text-white mb-2">Akses Terbatas</h2>
           <p className="text-gray-400 mb-6">Silakan login terlebih dahulu untuk mengakses dashboard</p>
-          <button
-            onClick={() => setCurrentPage('auth')}
-            className="btn-luxury"
-          >
-            Login Sekarang
-          </button>
+          <button onClick={() => setCurrentPage('auth')} className="btn-luxury">Login Sekarang</button>
         </motion.div>
       </div>
     );
   }
-
-  const isOwner = currentUser.role === 'owner';
-  const isAdmin = currentUser.role === 'admin';
-  const isRenter = currentUser.role === 'individual' || currentUser.role === 'corporate';
 
   const tabs = isOwner || isAdmin
     ? [
@@ -59,6 +103,8 @@ export default function DashboardPage() {
     : [
         { id: 'overview' as DashboardTab, label: 'Overview', icon: LayoutDashboard },
         { id: 'bookings' as DashboardTab, label: 'Booking Saya', icon: Calendar },
+        { id: 'fleet' as DashboardTab, label: 'Cari Kendaraan', icon: Car },
+        { id: 'profile' as DashboardTab, label: 'Profil', icon: User },
       ];
 
   return (
@@ -128,28 +174,28 @@ export default function DashboardPage() {
               {[
                 {
                   label: isOwner ? 'Total Armada' : 'Total Booking',
-                  value: isOwner ? '12' : '5',
+                  value: isOwner ? '12' : String(renterBookings.length),
                   icon: isOwner ? Car : Calendar,
                   change: '+2 bulan ini',
                   color: 'gold',
                 },
                 {
                   label: isOwner ? 'Booking Aktif' : 'Sedang Berjalan',
-                  value: isOwner ? '4' : '1',
+                  value: isOwner ? '4' : String(activeRenterBookings),
                   icon: Clock,
                   change: 'Minggu ini',
                   color: 'emerald',
                 },
                 {
                   label: isOwner ? 'Pendapatan Bulan Ini' : 'Selesai',
-                  value: isOwner ? 'Rp 45jt' : '3',
+                  value: isOwner ? 'Rp 45jt' : String(completedRenterBookings),
                   icon: isOwner ? TrendingUp : CheckCircle2,
                   change: isOwner ? '+15% dari bulan lalu' : 'Bulan ini',
                   color: 'blue',
                 },
                 {
                   label: isOwner ? 'Rating' : 'Dokumen',
-                  value: isOwner ? '4.8 ★' : 'Lengkap',
+                  value: isOwner ? '4.8 ★' : '—',
                   icon: isOwner ? BarChart3 : FileText,
                   change: isOwner ? '128 review' : 'Terverifikasi',
                   color: 'purple',
@@ -184,7 +230,10 @@ export default function DashboardPage() {
                 </h3>
               </div>
               <div className="divide-y divide-white/5">
-                {mockBookings.map((booking) => (
+                {isRenter && bookingsLoading && <p className="p-5 text-sm text-gray-400">Memuat booking Anda…</p>}
+                {isRenter && bookingsError && <p className="p-5 text-sm text-red-200">{bookingsError}</p>}
+                {isRenter && !bookingsLoading && !bookingsError && renterBookings.length === 0 && <div className="p-6 text-center"><p className="text-sm text-gray-400">Belum ada pemesanan di akun ini.</p><button onClick={() => setCurrentPage('fleet')} className="mt-3 rounded-lg bg-yellow-400 px-4 py-2 text-sm font-semibold text-black">Cari kendaraan</button></div>}
+                {dashboardBookings.slice(0, 5).map((booking) => (
                   <div key={booking.id} className="p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       booking.bookingStatus === 'active' ? 'bg-emerald-500/10' :
@@ -581,7 +630,10 @@ export default function DashboardPage() {
             animate={{ opacity: 1 }}
             className="space-y-4"
           >
-            {mockBookings.map((booking, i) => (
+            {isRenter && bookingsLoading && <div className="glass rounded-xl p-6 text-sm text-gray-400">Memuat booking Anda…</div>}
+            {isRenter && bookingsError && <div className="glass rounded-xl p-6 text-sm text-red-200">{bookingsError}</div>}
+            {isRenter && !bookingsLoading && !bookingsError && renterBookings.length === 0 && <div className="glass rounded-xl p-8 text-center"><p className="text-gray-400">Belum ada riwayat pemesanan.</p><button onClick={() => setCurrentPage('fleet')} className="mt-4 rounded-lg bg-yellow-400 px-4 py-2 text-sm font-semibold text-black">Jelajahi kendaraan</button></div>}
+            {dashboardBookings.map((booking, i) => (
               <motion.div
                 key={booking.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -623,7 +675,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                {booking.driverName && (
+                {'driverName' in booking && typeof booking.driverName === 'string' && booking.driverName && (
                   <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
                     <Users className="w-3.5 h-3.5 text-gold-400/60" />
                     <span className="text-xs text-gray-400">Driver: {booking.driverName}</span>
@@ -635,7 +687,14 @@ export default function DashboardPage() {
         )}
 
         {/* Fleet Tab (Owner only) */}
-        {activeTab === 'fleet' && (
+        {activeTab === 'fleet' && isRenter && (
+          <div className="glass rounded-2xl border border-white/5 p-6 sm:p-8">
+            <div className="mx-auto max-w-2xl text-center"><div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-400/10"><Car className="h-7 w-7 text-yellow-300"/></div><h2 className="text-xl font-semibold text-white">Temukan kendaraan untuk perjalanan Anda</h2><p className="mt-2 text-sm text-gray-400">Jelajahi armada, pilih tanggal dan lokasi, lalu kirim pemesanan dari katalog kendaraan.</p><button onClick={() => setCurrentPage('fleet')} className="mt-5 rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black">Buka katalog kendaraan</button></div>
+            <div className="mt-7 grid gap-4 sm:grid-cols-3">{mockVehicles.filter((vehicle) => vehicle.available).slice(0, 3).map((vehicle) => <button key={vehicle.id} onClick={() => { useAppStore.getState().setSelectedVehicle(vehicle); setCurrentPage('fleet'); }} className="overflow-hidden rounded-xl border border-white/10 text-left hover:border-yellow-400/40"><img src={vehicle.image} alt={vehicle.name} className="aspect-[16/10] w-full object-cover"/><div className="p-3"><p className="font-medium text-white">{vehicle.name}</p><p className="mt-1 text-sm text-yellow-200">{formatCurrency(vehicle.pricePerDay)} / hari</p></div></button>)}</div>
+          </div>
+        )}
+
+        {activeTab === 'fleet' && !isRenter && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -722,6 +781,18 @@ export default function DashboardPage() {
               ))}
             </div>
           </motion.div>
+        )}
+
+        {activeTab === 'profile' && isRenter && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+            <div className="mb-6 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400/10 text-yellow-200"><User className="h-7 w-7"/></div><div><h2 className="text-xl font-semibold text-white">Profil penyewa</h2><p className="mt-1 text-sm text-gray-400">Perbarui nama dan nomor telepon akun Anda.</p></div></div>
+            <form onSubmit={(event) => { event.preventDefault(); void saveRenterProfile(); }} className="space-y-5">
+              <label className="block text-sm text-gray-300">Nama lengkap<input required maxLength={120} value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-yellow-400/50"/></label>
+              <label className="block text-sm text-gray-300">Email<input disabled value={currentUser.email} className="mt-2 w-full rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-gray-500"/><span className="mt-1 block text-xs text-gray-500">Email akun tidak dapat diubah dari halaman ini.</span></label>
+              <label className="block text-sm text-gray-300">Nomor telepon<input type="tel" maxLength={20} value={profilePhone} onChange={(event) => setProfilePhone(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-yellow-400/50"/></label>
+              <button disabled={profileSaving} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black disabled:opacity-60">{profileSaving ? 'Menyimpan…' : 'Simpan profil'}</button>
+            </form>
+          </motion.section>
         )}
 
         {/* Upload 360 Modal */}

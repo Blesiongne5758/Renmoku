@@ -7,24 +7,24 @@ import {
   CheckCircle, AlertTriangle, Settings, Bell, LogOut,
   Menu, X, Crown, Navigation
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { AdminSection, useAppStore } from '../../stores/useAppStore';
 
 const adminMenu = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', badge: null },
-  { icon: Users, label: 'Users', href: 'users', badge: null },
-  { icon: Car, label: 'Vehicles', href: 'admin-vehicle-review', badge: null },
-  { icon: Calendar, label: 'Bookings', href: 'bookings', badge: null },
-  { icon: CheckCircle, label: 'Verifikasi', href: 'verification', badge: 12 },
-  { icon: DollarSign, label: 'Payout', href: 'payout', badge: 3 },
-  { icon: AlertTriangle, label: 'Dispute', href: 'dispute', badge: 5 },
-  { icon: Settings, label: 'Settings', href: 'settings', badge: null },
-  { icon: Navigation, label: 'GPS & Realtime', href: 'admin-gps-settings', badge: null },
+  { icon: LayoutDashboard, label: 'Dashboard', section: 'overview' as AdminSection },
+  { icon: Users, label: 'Pengguna', section: 'users' as AdminSection },
+  { icon: Car, label: 'Kendaraan', section: 'vehicles' as AdminSection },
+  { icon: Calendar, label: 'Booking', section: 'bookings' as AdminSection },
+  { icon: CheckCircle, label: 'Verifikasi', section: 'verification' as AdminSection },
+  { icon: DollarSign, label: 'Pembayaran', section: 'payout' as AdminSection },
+  { icon: AlertTriangle, label: 'Dispute', section: 'dispute' as AdminSection },
+  { icon: Settings, label: 'Pengaturan', section: 'settings' as AdminSection },
+  { icon: Navigation, label: 'GPS & Realtime', section: 'gps' as AdminSection },
 ];
 
 export default function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { currentPage, currentUser, setCurrentPage, logout } = useAppStore();
+  const { currentPage, adminSection, currentUser, setCurrentPage, setAdminSection, logout } = useAppStore();
 
   // Detect screen size
   useEffect(() => {
@@ -51,8 +51,9 @@ export default function AdminSidebar() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen, isMobile]);
 
-  const handleMenuClick = (href: string) => {
-    setCurrentPage(href);
+  const handleMenuClick = (section: AdminSection) => {
+    setAdminSection(section);
+    setCurrentPage('dashboard');
     if (isMobile) setIsOpen(false);
   };
 
@@ -89,11 +90,11 @@ export default function AdminSidebar() {
       {/* Menu */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {adminMenu.map((item, idx) => {
-          const isActive = currentPage === item.href;
+          const isActive = currentPage === 'dashboard' && adminSection === item.section;
           return (
             <motion.button
               key={item.label}
-              onClick={() => handleMenuClick(item.href)}
+              onClick={() => handleMenuClick(item.section)}
               initial={isMobile ? { opacity: 0, x: -20 } : false}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
@@ -105,11 +106,6 @@ export default function AdminSidebar() {
             >
               <item.icon className="w-5 h-5" />
               <span className="text-sm font-medium">{item.label}</span>
-              {item.badge && (
-                <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-medium">
-                  {item.badge}
-                </span>
-              )}
               {isActive && (
                 <motion.div
                   layoutId="adminActiveIndicator"

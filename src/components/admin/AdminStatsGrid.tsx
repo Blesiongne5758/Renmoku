@@ -1,112 +1,69 @@
-'use client';
-
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Car, DollarSign, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
+import { Users, Car, CalendarDays, CircleDollarSign, AlertTriangle, Clock, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAppStore } from '../../stores/useAppStore';
 
-const stats = [
-  {
-    icon: Users,
-    label: 'Total Pengguna',
-    value: '2,847',
-    change: '+234 bulan ini',
-    color: 'purple',
-    subtext: '1,245 Renter • 158 Owner',
-  },
-  {
-    icon: Car,
-    label: 'Total Armada',
-    value: '458',
-    change: '+42 bulan ini',
-    color: 'blue',
-    subtext: '89% tersedia',
-  },
-  {
-    icon: DollarSign,
-    label: 'GMV Bulan Ini',
-    value: 'Rp 1.2M',
-    change: '+18.5%',
-    color: 'gold',
-    subtext: 'Target: Rp 1.5M',
-  },
-  {
-    icon: TrendingUp,
-    label: 'Komisi Platform',
-    value: 'Rp 150Jt',
-    change: '12.5% dari GMV',
-    color: 'green',
-    subtext: '▲ +22% MoM',
-  },
-];
-
-const alerts = [
-  { icon: AlertTriangle, label: 'KYC Pending', value: 12, color: 'red' },
-  { icon: Clock, label: 'Dispute Aktif', value: 5, color: 'yellow' },
-  { icon: DollarSign, label: 'Payout Pending', value: 3, color: 'orange' },
-];
-
-const colorMap = {
-  purple: 'from-purple-500/20 to-purple-700/5 border-purple-500/30',
-  blue: 'from-blue-500/20 to-blue-700/5 border-blue-500/30',
-  gold: 'from-yellow-400/20 to-yellow-600/5 border-yellow-400/30',
-  green: 'from-green-500/20 to-green-700/5 border-green-500/30',
-};
-
-const alertColorMap = {
-  red: 'bg-red-500/20 text-red-400 border-red-500/30',
-  yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-};
+type Metrics = { users: number; vehicles: number; bookings: number; paid: number; pendingUsers: number; openDisputes: number };
+const initialMetrics: Metrics = { users: 0, vehicles: 0, bookings: 0, paid: 0, pendingUsers: 0, openDisputes: 0 };
+const money = (value: number) => `Rp ${value.toLocaleString('id-ID')}`;
 
 export default function AdminStatsGrid() {
-  return (
-    <div className="space-y-6">
-      {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className={`relative p-6 rounded-2xl bg-gradient-to-br ${colorMap[stat.color as keyof typeof colorMap]} border backdrop-blur-xl overflow-hidden group`}
-          >
-            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/5 blur-3xl group-hover:scale-150 transition-transform duration-500" />
-            
-            <div className="relative">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-xl bg-black/40">
-                  <stat.icon className="w-5 h-5" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-400 mb-1">{stat.label}</p>
-              <p className="text-3xl font-bold font-mono">{stat.value}</p>
-              <p className="text-xs text-gray-500 mt-2">{stat.subtext}</p>
-              <p className="text-xs text-green-400 mt-1">{stat.change}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+  const [metrics, setMetrics] = useState(initialMetrics);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const { setAdminSection, setCurrentPage } = useAppStore();
 
-      {/* Alerts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {alerts.map((alert, idx) => (
-          <motion.div
-            key={alert.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 + idx * 0.1 }}
-            className={`flex items-center gap-4 p-4 rounded-xl border ${alertColorMap[alert.color as keyof typeof alertColorMap]}`}
-          >
-            <div className="p-2 rounded-lg bg-black/40">
-              <alert.icon className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm">{alert.label}</p>
-              <p className="text-2xl font-bold font-mono">{alert.value}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+      supabase.from('vehicles').select('id', { count: 'exact', head: true }),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }),
+      supabase.from('payments').select('amount').eq('status', 'PAID'),
+      supabase.from('users').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabase.from('admin_disputes').select('id', { count: 'exact', head: true }).neq('status', 'RESOLVED'),
+    ]).then(([users, vehicles, bookings, payments, pendingUsers, disputes]) => {
+      if (cancelled) return;
+      const hasError = [users, vehicles, bookings, payments, pendingUsers, disputes].some((result) => result.error);
+      setError(hasError);
+      setMetrics({
+        users: users.count ?? 0,
+        vehicles: vehicles.count ?? 0,
+        bookings: bookings.count ?? 0,
+        paid: (payments.data ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
+        pendingUsers: pendingUsers.count ?? 0,
+        openDisputes: disputes.count ?? 0,
+      });
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const cards = [
+    { icon: Users, label: 'Total pengguna', value: metrics.users.toLocaleString('id-ID'), style: 'from-purple-500/20 to-purple-700/5 border-purple-500/30' },
+    { icon: Car, label: 'Total kendaraan', value: metrics.vehicles.toLocaleString('id-ID'), style: 'from-blue-500/20 to-blue-700/5 border-blue-500/30' },
+    { icon: CalendarDays, label: 'Total booking', value: metrics.bookings.toLocaleString('id-ID'), style: 'from-yellow-400/20 to-yellow-600/5 border-yellow-400/30' },
+    { icon: CircleDollarSign, label: 'Pembayaran diterima', value: money(metrics.paid), style: 'from-green-500/20 to-green-700/5 border-green-500/30' },
+  ];
+  const alerts = [
+    { icon: AlertTriangle, label: 'Akun menunggu verifikasi', value: metrics.pendingUsers, section: 'verification' as const, style: 'border-red-500/30 bg-red-500/10 text-red-300' },
+    { icon: Clock, label: 'Dispute belum selesai', value: metrics.openDisputes, section: 'dispute' as const, style: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-200' },
+  ];
+
+  return <div className="space-y-5">
+    {error && <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100">Sebagian ringkasan belum dapat dimuat. Pastikan migrasi admin dan izin database sudah diterapkan.</p>}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {cards.map((card, index) => <motion.article key={card.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }} className={`rounded-2xl border bg-gradient-to-br p-5 ${card.style}`}>
+        <div className="mb-4 flex items-center justify-between"><span className="text-sm text-gray-400">{card.label}</span><card.icon className="h-5 w-5 text-white/70"/></div>
+        <p className="break-words text-2xl font-semibold text-white">{loading ? <Loader2 className="h-6 w-6 animate-spin"/> : card.value}</p>
+        <p className="mt-2 text-xs text-gray-500">Data langsung dari database</p>
+      </motion.article>)}
     </div>
-  );
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {alerts.map((alert) => <button key={alert.label} onClick={() => { setAdminSection(alert.section); setCurrentPage('dashboard'); }} className={`flex items-center gap-4 rounded-xl border p-4 text-left transition hover:brightness-125 ${alert.style}`}>
+        <alert.icon className="h-5 w-5"/><span className="flex-1 text-sm">{alert.label}</span><span className="text-xl font-semibold">{loading ? '…' : alert.value}</span>
+      </button>)}
+    </div>
+  </div>;
 }

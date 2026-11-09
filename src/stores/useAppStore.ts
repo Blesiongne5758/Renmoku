@@ -7,6 +7,7 @@ export type RentalType = 'with_driver' | 'self_drive';
 export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'dp_paid' | 'fully_paid' | 'refunded';
 export type OwnerSection = 'overview' | 'fleet' | 'bookings' | 'revenue' | 'check' | 'analytics' | 'gps' | 'settings';
+export type AdminSection = 'overview' | 'users' | 'vehicles' | 'bookings' | 'verification' | 'payout' | 'dispute' | 'settings' | 'gps';
 
 export interface Vehicle {
   id: string;
@@ -95,6 +96,7 @@ interface AppState {
   authModalOpen: boolean;
   authMode: 'login' | 'register';
   ownerSection: OwnerSection;
+  adminSection: AdminSection;
   
   // Booking
   currentBooking: Partial<Booking> | null;
@@ -120,6 +122,7 @@ interface AppState {
   setAuthModalOpen: (open: boolean) => void;
   setAuthMode: (mode: 'login' | 'register') => void;
   setOwnerSection: (section: OwnerSection) => void;
+  setAdminSection: (section: AdminSection) => void;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: RegisterData) => Promise<{ success: boolean; needsEmailConfirmation?: boolean }>;
   restoreSession: () => Promise<void>;
@@ -178,6 +181,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   authModalOpen: false,
   authMode: 'login',
   ownerSection: 'overview',
+  adminSection: 'overview',
   currentBooking: null,
   bookingStep: 0,
   ownerSettings: {
@@ -204,6 +208,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAuthModalOpen: (open) => set({ authModalOpen: open }),
   setAuthMode: (mode) => set({ authMode: mode }),
   setOwnerSection: (ownerSection) => set({ ownerSection }),
+  setAdminSection: (adminSection) => set({ adminSection }),
   
   login: async (email: string, password: string) => {
     try {
