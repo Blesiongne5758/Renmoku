@@ -141,6 +141,19 @@ export interface RegisterData {
   npwp?: string;
 }
 
+const mapAuthUser = (authUser: { id: string; email?: string; phone?: string; user_metadata?: Record<string, unknown> }): User => {
+  const metadata = authUser.user_metadata ?? {};
+  const accountType = metadata.account_type;
+  const role: UserRole = accountType === 'owner' || accountType === 'corporate' ? accountType : 'individual';
+  return {
+    id: authUser.id,
+    name: typeof metadata.full_name === 'string' ? metadata.full_name : (authUser.email?.split('@')[0] ?? 'Pengguna'),
+    email: authUser.email ?? '',
+    role,
+    phone: authUser.phone ?? (typeof metadata.phone === 'string' ? metadata.phone : undefined),
+  };
+};
+
 export const useAppStore = create<AppState>((set, get) => ({
   currentPage: 'home',
   isMenuOpen: false,
