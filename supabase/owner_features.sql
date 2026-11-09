@@ -151,6 +151,26 @@ $$;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
 
+CREATE OR REPLACE FUNCTION public.protect_user_role_status()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF (NEW.role IS DISTINCT FROM OLD.role OR NEW.status IS DISTINCT FROM OLD.status)
+     AND NOT (select public.is_admin()) THEN
+    RAISE EXCEPTION 'Only an administrator can change account role or status';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.protect_user_role_status() FROM PUBLIC;
+DROP TRIGGER IF EXISTS protect_user_role_status ON public.users;
+CREATE TRIGGER protect_user_role_status
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.protect_user_role_status();
+
 CREATE OR REPLACE FUNCTION public.can_view_booked_vehicle(target_vehicle_id uuid)
 RETURNS boolean
 LANGUAGE sql
