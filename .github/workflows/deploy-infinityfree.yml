@@ -55,8 +55,8 @@ jobs:
           lftp -u "$FTP_USER,$FTP_PASS" "$FTP_HOST" <<EOF
           set ssl:verify-certificate no
           set ftp:passive-mode true
-          set net:max-retries 3
-          set net:timeout 20
-          mirror --reverse --verbose --exclude-glob cgi-bin/** ./dist/ "${ROOT}/"
+          set net:max-retries 10
+          set net:timeout 30
+          mirror --reverse --verbose --no-perms --overwrite --exclude-glob cgi-bin/** ./dist/ "${ROOT}/"
           bye
           EOF
