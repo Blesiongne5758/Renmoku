@@ -200,78 +200,47 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAuthMode: (mode) => set({ authMode: mode }),
   
   login: async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Demo credentials
-    const demoUsers: Record<string, User> = {
-      'renter@renmoku.id': {
-        id: 'u1',
-        name: 'Ahmad Wijaya',
-        email: 'renter@renmoku.id',
-        role: 'individual',
-        phone: '+62 812-1234-5678',
-      },
-      'corporate@renmoku.id': {
-        id: 'u2',
-        name: 'PT Maju Bersama',
-        email: 'corporate@renmoku.id',
-        role: 'corporate',
-        phone: '+62 21-5555-6666',
-      },
-      'owner@renmoku.id': {
-        id: 'u3',
-        name: 'Budi Santoso Fleet',
-        email: 'owner@renmoku.id',
-        role: 'owner',
-        phone: '+62 815-4567-8901',
-      },
-      'admin@renmoku.id': {
-        id: 'u4',
-        name: 'Admin Renmoku',
-        email: 'admin@renmoku.id',
-        role: 'admin',
-        phone: '+62 811-0000-0000',
-      },
-    };
-    
-    const user = demoUsers[email];
-    if (user && password === 'demo123') {
-      set({ 
-        currentUser: user, 
-        isAuthenticated: true,
-        authModalOpen: false,
-      });
+    try {
+      const { user } = await authService.login(email.trim().toLowerCase(), password);
+      if (!user) return false;
+      set({ currentUser: mapAuthUser(user), isAuthenticated: true, authModalOpen: false });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   },
   
   register: async (data: RegisterData) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: `u_${Date.now()}`,
-      name: data.role === 'corporate' ? (data.companyName || data.name) : data.name,
-      email: data.email,
-      role: data.role,
-      phone: data.phone,
-    };
-    
-    set({ 
-      currentUser: newUser, 
-      isAuthenticated: true,
-      authModalOpen: false,
-    });
-    return true;
+    try {
+      const name = data.role === 'corporate' ? (data.companyName || data.name) : data.name;
+      const { user, session } = await authService.register(data.email.trim().toLowerCase(), data.password, {
+        full_name: name,
+        phone: data.phone,
+        role: data.role === 'owner' ? 'OWNER' : 'RENTER',
+        account_type: data.role,
+        company_name: data.role === 'corporate' ? data.companyName : undefined,
+      });
+      if (!user) return { success: false };
+      if (session) set({ currentUser: mapAuthUser(user), isAuthenticated: true, authModalOpen: false });
+      return { success: true, needsEmailConfirmation: !session };
+    } catch {
+      return { success: false };
+    }
+  },
+
+  restoreSession: async () => {
+    try {
+      const session = await authService.getSession();
+      if (session?.user) set({ currentUser: mapAuthUser(session.user), isAuthenticated: true });
+    } catch {
+      // Keep the signed-out state when session restoration is unavailable.
+    }
   },
   
-  logout: () => set({ 
-    currentUser: null, 
-    isAuthenticated: false,
-    currentPage: 'home',
-  }),
+  logout: () => {
+    void authService.logout().catch(() => undefined);
+    set({ currentUser: null, isAuthenticated: false, currentPage: 'home' });
+  },
   
   // Booking Actions
   setCurrentBooking: (booking) => set({ currentBooking: booking }),
