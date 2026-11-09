@@ -1,6 +1,41 @@
 -- Owner dashboard settings, runtime GPS/map configuration, and vehicle submissions.
 -- Run once in Supabase SQL Editor before using these features.
 
+-- Keep the existing public profile/owner tables in sync with new Supabase Auth sign-ups.
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  new_role text := CASE WHEN new.raw_user_meta_data ->> 'role' = 'OWNER' THEN 'OWNER' ELSE 'RENTER' END;
+  display_name text := COALESCE(NULLIF(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1));
+BEGIN
+  INSERT INTO public.users (id, email, full_name, phone, role, status)
+  VALUES (new.id, new.email, display_name, new.phone, new_role, 'PENDING')
+  ON CONFLICT (id) DO NOTHING;
+
+  IF new_role = 'OWNER' THEN
+    INSERT INTO public.owners (user_id, business_name)
+    VALUES (new.id, display_name)
+    ON CONFLICT (user_id) DO NOTHING;
+  END IF;
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+INSERT INTO public.owners (user_id, business_name)
+SELECT u.id, COALESCE(NULLIF(u.full_name, ''), 'Pemilik Rental')
+FROM public.users u
+WHERE u.role = 'OWNER'
+ON CONFLICT (user_id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS public.owner_private_settings (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   bank_name text NOT NULL DEFAULT '',
