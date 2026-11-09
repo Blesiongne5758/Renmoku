@@ -11,7 +11,7 @@ export default function SuccessPage() {
 
   return (
     <div className="min-h-screen pt-20 pb-16 bg-gradient-luxury flex items-center justify-center">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <div className="mx-auto w-full max-w-2xl px-5 sm:px-8 lg:px-10">
         {/* Success Animation */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}

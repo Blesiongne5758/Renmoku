@@ -67,8 +67,8 @@ export default function LandingPage() {
     <main className="min-h-screen bg-[#fbfaf8] text-[#29271f]">
       <HeroCinematic />
 
-      <section id="mobil-populer" className="scroll-mt-24 px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
-        <div className="mx-auto max-w-7xl">
+      <section id="mobil-populer" className="scroll-mt-24 py-20 sm:py-24 lg:py-28">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-10">
           <motion.header
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -130,8 +130,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-[#f3f0e9] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
-        <div className="mx-auto max-w-7xl">
+      <section className="bg-[#f3f0e9] py-20 sm:py-24 lg:py-28">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-10">
           <header className="mx-auto mb-12 max-w-2xl text-center sm:mb-16">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#9a7740]">Layanan Renmoku</p>
             <h2 className="font-[Playfair_Display] text-3xl font-medium tracking-tight text-[#29271f] sm:text-4xl">
@@ -165,8 +165,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
+      <section className="py-20 sm:py-24 lg:py-28">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:px-10">
           <div className="max-w-xl">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#9a7740]">Untuk pemilik rental</p>
             <h2 className="font-[Playfair_Display] text-3xl font-medium leading-tight tracking-tight text-[#29271f] sm:text-4xl">
@@ -221,8 +221,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="px-5 pb-20 sm:px-8 sm:pb-24 lg:px-10">
-        <div className="mx-auto max-w-7xl rounded-3xl bg-[#eee8dc] px-6 py-12 text-center sm:px-12 sm:py-16">
+      <section className="pb-20 sm:pb-24">
+        <div className="mx-auto max-w-6xl rounded-3xl bg-[#eee8dc] px-5 py-12 text-center sm:px-12 sm:py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a6b38]">Mulai perjalanan Anda</p>
           <h2 className="mx-auto mt-4 max-w-2xl font-[Playfair_Display] text-3xl font-medium tracking-tight text-[#29271f] sm:text-4xl">
             Siap menemukan kendaraan yang tepat?
@@ -240,8 +240,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-[#e9e5dc] bg-white px-5 py-8 sm:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+      <footer className="border-t border-[#e9e5dc] bg-white py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row sm:px-8 lg:px-10">
           <div className="flex items-center gap-3 text-[#29271f]">
             <Car className="h-5 w-5 text-[#9a7740]" aria-hidden="true" />
             <span className="font-[Playfair_Display] text-lg font-medium tracking-wide">RENMOKU</span>

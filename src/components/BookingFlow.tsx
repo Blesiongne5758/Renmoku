@@ -117,7 +117,7 @@ export default function BookingFlow() {
 
   return (
     <div className="min-h-screen pt-20 pb-16 bg-gradient-luxury">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-5 sm:px-8 lg:px-10">
         {/* Progress Steps */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

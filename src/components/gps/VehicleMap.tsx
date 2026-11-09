@@ -80,7 +80,7 @@ export default function VehicleMap({
 
           // Label
           ctx.fillStyle = '#fff';
-          ctx.font = '12px Inter';
+          ctx.font = '12px "DM Sans"';
           ctx.fillText(geofence.name, x + radius + 5, y);
         }
       });
@@ -118,17 +118,17 @@ export default function VehicleMap({
 
     // Speed indicator
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Inter';
+    ctx.font = 'bold 14px "DM Sans"';
     ctx.fillText(`${location.speed.toFixed(0)} km/h`, vehicleX + 25, vehicleY - 10);
 
     // Vehicle name
     ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 16px Inter';
+    ctx.font = 'bold 16px "DM Sans"';
     ctx.fillText(vehicleName, 10, 25);
 
     // Coordinates
     ctx.fillStyle = '#888';
-    ctx.font = '12px Inter';
+    ctx.font = '12px "DM Sans"';
     ctx.fillText(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`, 10, canvas.height - 10);
 
     // Timestamp

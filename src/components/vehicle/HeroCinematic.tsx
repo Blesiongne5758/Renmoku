@@ -7,7 +7,7 @@ export default function HeroCinematic() {
 
   return (
     <section className="relative overflow-hidden bg-[#fbfaf8] pt-28 sm:pt-32 lg:pt-36">
-      <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 pb-14 sm:px-8 sm:pb-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:px-10 lg:pb-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 pb-14 sm:px-8 sm:pb-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:px-10 lg:pb-24">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
