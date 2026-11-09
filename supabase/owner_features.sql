@@ -248,3 +248,37 @@ DROP POLICY IF EXISTS "Admins can update disputes" ON public.admin_disputes;
 CREATE POLICY "Admins can update disputes" ON public.admin_disputes FOR UPDATE TO authenticated
   USING ((select public.is_admin())) WITH CHECK ((select public.is_admin()));
 GRANT SELECT, INSERT, UPDATE ON public.admin_disputes TO authenticated;
+
+-- Latest GPS positions ingested by the trusted GPS gateway/service role.
+CREATE TABLE IF NOT EXISTS public.vehicle_gps_locations (
+  vehicle_id uuid PRIMARY KEY REFERENCES public.vehicles(id) ON DELETE CASCADE,
+  latitude double precision NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+  longitude double precision NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+  speed double precision NOT NULL DEFAULT 0 CHECK (speed >= 0),
+  heading double precision NOT NULL DEFAULT 0 CHECK (heading >= 0 AND heading < 360),
+  recorded_at timestamptz NOT NULL DEFAULT now(),
+  received_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.vehicle_gps_locations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Owners can view GPS for their vehicles" ON public.vehicle_gps_locations;
+CREATE POLICY "Owners can view GPS for their vehicles" ON public.vehicle_gps_locations FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.vehicles v
+    JOIN public.owners o ON o.id = v.owner_id
+    WHERE v.id = vehicle_gps_locations.vehicle_id AND o.user_id = (select auth.uid())
+  ));
+DROP POLICY IF EXISTS "Admins can view all vehicle GPS" ON public.vehicle_gps_locations;
+CREATE POLICY "Admins can view all vehicle GPS" ON public.vehicle_gps_locations FOR SELECT TO authenticated
+  USING ((select public.is_admin()));
+GRANT SELECT ON public.vehicle_gps_locations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.vehicle_gps_locations TO service_role;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'vehicle_gps_locations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.vehicle_gps_locations;
+  END IF;
+END $$;

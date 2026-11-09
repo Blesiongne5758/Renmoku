@@ -6,6 +6,7 @@ import gpsTrackingService from '../services/gpsTrackingService';
 import VehicleMonitoring from '../pages/owner/VehicleMonitoring';
 import { getRuntimeSettings } from '../services/runtimeSettingsService';
 import { useSocketContext } from './SocketProvider';
+import OwnerLiveGPSMap from './OwnerLiveGPSMap';
 
 export default function OwnerGPSPanel() {
   const settings = useGPSTrackingStore((state) => state.globalSettings);
@@ -31,10 +32,12 @@ export default function OwnerGPSPanel() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-100">
-        <strong className="flex items-center gap-2"><Activity className="h-4 w-4" />Mode simulasi GPS</strong>
-        <p className="mt-1 text-amber-100/70">Peta dan posisi kendaraan yang ditampilkan adalah data simulasi pada browser. Pelacakan perangkat GPS fisik memerlukan perangkat dan koneksi backend GPS.</p>
+        <strong className="flex items-center gap-2"><Activity className="h-4 w-4" />Peta armada memakai koordinat perangkat GPS</strong>
+        <p className="mt-1 text-amber-100/70">Panel peta di atas menampilkan data live dari perangkat yang terhubung. Detail kendaraan di bagian bawah masih berupa simulasi browser untuk pratinjau; pelacakan perangkat memerlukan gateway GPS yang mengirim koordinat ke backend.</p>
       </div>
       <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs ${isConnected ? 'bg-emerald-400/10 text-emerald-200' : 'bg-white/5 text-gray-400'}`}><span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-gray-500'}`} />{isConnected ? 'Realtime tersambung' : 'Realtime belum tersambung'}</div>
+
+      <OwnerLiveGPSMap />
 
       <section className="rounded-2xl border border-white/10 bg-[#141414] p-5 sm:p-7">
         <div className="mb-5 flex items-center gap-3"><Settings2 className="h-5 w-5 text-yellow-400" /><div><h2 className="font-semibold">Pengaturan GPS</h2><p className="text-sm text-gray-500">Atur fitur monitoring dan interval pembaruan simulasi</p></div></div>
