@@ -45,7 +45,7 @@ export default function AuthPage() {
         setCurrentPage('dashboard');
       }, 1000);
     } else {
-      setError('Email atau password salah. Gunakan demo credentials.');
+      setError('Email atau password salah. Periksa kembali data yang Anda masukkan.');
     }
   };
 
@@ -262,16 +262,6 @@ export default function AuthPage() {
                 )}
               </motion.button>
 
-              {/* Demo Credentials */}
-              <div className="mt-4 p-3 rounded-lg bg-gold-500/5 border border-gold-500/10">
-                <p className="text-xs text-gold-300 font-medium mb-2">🔑 Demo Credentials:</p>
-                <div className="space-y-1 text-xs text-gray-400">
-                  <p><span className="text-gold-400">Penyewa:</span> renter@renmoku.id</p>
-                  <p><span className="text-gold-400">Corporate:</span> corporate@renmoku.id</p>
-                  <p><span className="text-gold-400">Owner:</span> owner@renmoku.id</p>
-                  <p><span className="text-gold-400">Password:</span> demo123</p>
-                </div>
-              </div>
             </motion.form>
           )}
 
