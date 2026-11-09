@@ -12,6 +12,7 @@ import OwnerSettingsPanel from './OwnerSettingsPanel';
 import OwnerGPSPanel from './OwnerGPSPanel';
 import AdvancedAnalytics from './AdvancedAnalytics';
 import AddVehicleForm from './AddVehicleForm';
+import OwnerSpinStudio from './OwnerSpinStudio';
 
 export default function OwnerDashboardContent() {
   const { currentUser, ownerSection, setOwnerSection } = useAppStore();
@@ -29,7 +30,7 @@ export default function OwnerDashboardContent() {
   });
   const sectionTitle = {
     overview: 'Ringkasan', fleet: 'Armada Kendaraan', bookings: 'Pemesanan', revenue: 'Pendapatan',
-    check: 'Check-in / Check-out', analytics: 'Analitik', gps: 'GPS Kendaraan', settings: 'Pengaturan Pengguna',
+    check: 'Check-in / Check-out', analytics: 'Analitik', gps: 'GPS Kendaraan', spin360: 'Studio Spin 360°', settings: 'Pengaturan Pengguna',
   }[ownerSection];
 
   return (
@@ -128,6 +129,7 @@ export default function OwnerDashboardContent() {
           {ownerSection === 'revenue' && <RevenueDashboard />}
           {ownerSection === 'analytics' && <AdvancedAnalytics />}
           {ownerSection === 'gps' && <OwnerGPSPanel />}
+          {ownerSection === 'spin360' && <OwnerSpinStudio />}
           {ownerSection === 'settings' && <OwnerSettingsPanel />}
         </div>
         {showAddVehicle && <AddVehicleForm onClose={() => setShowAddVehicle(false)} onSubmitted={() => setSubmissionRefresh((value) => value + 1)} />}

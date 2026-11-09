@@ -151,6 +151,31 @@ $$;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
 
+CREATE OR REPLACE FUNCTION public.protect_submission_review_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NOT (select public.is_admin()) AND
+     (to_jsonb(NEW) - 'spin_frames' - 'spin_video_url') IS DISTINCT FROM
+     (to_jsonb(OLD) - 'spin_frames' - 'spin_video_url') THEN
+    RAISE EXCEPTION 'Owners may only update spin preview assets on their submissions';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.protect_submission_review_fields() FROM PUBLIC;
+DROP TRIGGER IF EXISTS protect_submission_review_fields ON public.owner_vehicle_submissions;
+CREATE TRIGGER protect_submission_review_fields
+  BEFORE UPDATE ON public.owner_vehicle_submissions
+  FOR EACH ROW EXECUTE FUNCTION public.protect_submission_review_fields();
+
+DROP POLICY IF EXISTS "Owners can update their spin preview assets" ON public.owner_vehicle_submissions;
+CREATE POLICY "Owners can update their spin preview assets" ON public.owner_vehicle_submissions FOR UPDATE TO authenticated
+  USING (user_id = (select auth.uid())) WITH CHECK (user_id = (select auth.uid()));
+
 CREATE OR REPLACE FUNCTION public.protect_user_role_status()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -272,6 +297,12 @@ CREATE POLICY "Admins can view all vehicle GPS" ON public.vehicle_gps_locations 
   USING ((select public.is_admin()));
 GRANT SELECT ON public.vehicle_gps_locations TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.vehicle_gps_locations TO service_role;
+
+-- Ordered turntable photo sequence and rendered showroom spin video.
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS spin_frames jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS spin_video_url text;
+ALTER TABLE public.owner_vehicle_submissions ADD COLUMN IF NOT EXISTS spin_frames jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.owner_vehicle_submissions ADD COLUMN IF NOT EXISTS spin_video_url text;
 
 DO $$
 BEGIN

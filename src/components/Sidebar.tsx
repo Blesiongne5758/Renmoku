@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Car, Calendar, DollarSign, 
-  CheckCircle, TrendingUp, Settings, Bell, LogOut, Navigation,
+  CheckCircle, TrendingUp, Settings, Bell, LogOut, Navigation, Rotate3D,
   Menu, X, ChevronRight
 } from 'lucide-react';
 import { OwnerSection, useAppStore } from '../stores/useAppStore';
@@ -17,6 +17,7 @@ const ownerMenu = [
   { icon: CheckCircle, label: 'Check-in/out', href: 'dashboard', subpage: 'check' },
   { icon: TrendingUp, label: 'Analytics', href: 'dashboard', subpage: 'analytics' },
   { icon: Navigation, label: 'GPS Kendaraan', href: 'dashboard', subpage: 'gps' },
+  { icon: Rotate3D, label: 'Studio Spin 360°', href: 'dashboard', subpage: 'spin360' },
   { icon: Settings, label: 'Settings', href: 'dashboard', subpage: 'settings' },
 ];
 

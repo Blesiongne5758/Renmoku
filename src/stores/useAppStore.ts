@@ -6,7 +6,7 @@ export type UserRole = 'individual' | 'corporate' | 'owner' | 'admin';
 export type RentalType = 'with_driver' | 'self_drive';
 export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'dp_paid' | 'fully_paid' | 'refunded';
-export type OwnerSection = 'overview' | 'fleet' | 'bookings' | 'revenue' | 'check' | 'analytics' | 'gps' | 'settings';
+export type OwnerSection = 'overview' | 'fleet' | 'bookings' | 'revenue' | 'check' | 'analytics' | 'gps' | 'spin360' | 'settings';
 export type AdminSection = 'overview' | 'users' | 'vehicles' | 'bookings' | 'verification' | 'payout' | 'dispute' | 'settings' | 'gps';
 
 export interface Vehicle {
