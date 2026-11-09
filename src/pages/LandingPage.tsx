@@ -58,14 +58,14 @@ export default function LandingPage() {
       <HeroCinematic />
 
       {/* Popular Cars Section */}
-      <section className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-luxury-950">
+      <section id="mobil-populer" className="scroll-mt-24 py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-luxury-950">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12 sm:mb-16"
+            className="text-center mb-10 sm:mb-12"
           >
             <h2 className="font-[Playfair_Display] text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight-custom">
               Mobil <span className="text-gold-gradient">Populer</span>
@@ -76,7 +76,7 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Cars Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {popularCars.map((car, index) => (
               <motion.div
                 key={car.name}
@@ -84,7 +84,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -8 }}
+                whileHover={{ y: -4 }}
                 className="card-luxury rounded-2xl overflow-hidden group cursor-pointer"
               >
                 {/* Car Image */}
@@ -106,7 +106,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Car Info */}
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                   <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-gold-300 transition-colors">
                     {car.name}
                   </h3>
