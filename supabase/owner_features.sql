@@ -149,6 +149,22 @@ AS $$
   SELECT EXISTS (SELECT 1 FROM public.users WHERE id = (select auth.uid()) AND role = 'ADMIN');
 $$;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.can_view_booked_vehicle(target_vehicle_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.bookings
+    WHERE vehicle_id = target_vehicle_id AND renter_id = (select auth.uid())
+  );
+$$;
+REVOKE ALL ON FUNCTION public.can_view_booked_vehicle(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.can_view_booked_vehicle(uuid) TO authenticated;
 
 DROP POLICY IF EXISTS "Admins can review vehicle submissions" ON public.owner_vehicle_submissions;
 CREATE POLICY "Admins can review vehicle submissions" ON public.owner_vehicle_submissions FOR SELECT TO authenticated
@@ -181,7 +197,7 @@ GRANT SELECT, UPDATE ON public.bookings TO authenticated;
 
 DROP POLICY IF EXISTS "Renters can view vehicles in their bookings" ON public.vehicles;
 CREATE POLICY "Renters can view vehicles in their bookings" ON public.vehicles FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.bookings b WHERE b.vehicle_id = vehicles.id AND b.renter_id = (select auth.uid())));
+  USING ((select public.can_view_booked_vehicle(id)));
 DROP POLICY IF EXISTS "Admins can view all vehicles" ON public.vehicles;
 CREATE POLICY "Admins can view all vehicles" ON public.vehicles FOR SELECT TO authenticated
   USING ((select public.is_admin()));
