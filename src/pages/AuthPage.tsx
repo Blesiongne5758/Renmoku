@@ -54,10 +54,15 @@ export default function AuthPage() {
     setError('');
     setIsLoading(true);
 
-    const success = await register(registerData);
+    const result = await register(registerData);
     setIsLoading(false);
 
-    if (success) {
+    if (result.success && result.needsEmailConfirmation) {
+      setLoginData({ email: registerData.email, password: '' });
+      setSuccess('Pendaftaran berhasil. Periksa email Anda dan konfirmasi alamat email sebelum masuk.');
+      setAuthMode('login');
+      setStep(1);
+    } else if (result.success) {
       setSuccess('Pendaftaran berhasil! Mengalihkan...');
       setTimeout(() => {
         setCurrentPage('dashboard');
