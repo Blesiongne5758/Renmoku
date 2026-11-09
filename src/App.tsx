@@ -29,6 +29,7 @@ import { canAccessRoute } from './lib/auth';
 function App() {
   const { currentPage, currentUser } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
+  const isPublicHome = currentPage === 'home';
 
   const renderPage = () => {
     // Route protection - check access before rendering
@@ -84,7 +85,7 @@ function App() {
 
   return (
     <SocketProvider>
-      <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
+      <div className={`min-h-screen overflow-x-hidden ${isPublicHome ? 'bg-[#fbfaf8] text-[#29271f]' : 'bg-luxury-900 text-white'}`}>
         {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
         {!isLoading && (
@@ -98,12 +99,12 @@ function App() {
             {/* Toast Notifications */}
             <Toaster 
               position="top-right" 
-              theme="dark"
+              theme={isPublicHome ? 'light' : 'dark'}
               toastOptions={{
                 style: {
-                  background: '#1a1a1a',
-                  border: '1px solid rgba(212, 175, 55, 0.2)',
-                  color: '#fff',
+                  background: isPublicHome ? '#fff' : '#1a1a1a',
+                  border: isPublicHome ? '1px solid #e9e5dc' : '1px solid rgba(212, 175, 55, 0.2)',
+                  color: isPublicHome ? '#29271f' : '#fff',
                 },
               }}
             />
