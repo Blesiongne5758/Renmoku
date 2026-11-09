@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { authService } from '../services/supabaseService';
 
 // === TYPES ===
 export type UserRole = 'individual' | 'corporate' | 'owner' | 'admin';
@@ -117,7 +118,8 @@ interface AppState {
   setAuthModalOpen: (open: boolean) => void;
   setAuthMode: (mode: 'login' | 'register') => void;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<{ success: boolean; needsEmailConfirmation?: boolean }>;
+  restoreSession: () => Promise<void>;
   logout: () => void;
   
   // Booking Actions

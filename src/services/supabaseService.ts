@@ -9,7 +9,9 @@ export const authService = {
   register: async (email: string, password: string, metadata: {
     full_name?: string;
     phone?: string;
-    role?: 'RENTER' | 'OWNER' | 'ADMIN';
+    role?: 'RENTER' | 'OWNER';
+    account_type?: 'individual' | 'corporate' | 'owner';
+    company_name?: string;
   }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -20,22 +22,6 @@ export const authService = {
     });
 
     if (error) throw error;
-
-    // Create user profile in database
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,
-          email: data.user.email,
-          full_name: metadata.full_name,
-          phone: metadata.phone,
-          role: metadata.role || 'RENTER',
-          status: 'PENDING',
-        });
-
-      if (profileError) throw profileError;
-    }
 
     return data;
   },
