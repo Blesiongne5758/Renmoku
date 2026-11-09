@@ -6,6 +6,7 @@ export type UserRole = 'individual' | 'corporate' | 'owner' | 'admin';
 export type RentalType = 'with_driver' | 'self_drive';
 export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'dp_paid' | 'fully_paid' | 'refunded';
+export type OwnerSection = 'overview' | 'fleet' | 'bookings' | 'revenue' | 'check' | 'analytics' | 'gps' | 'settings';
 
 export interface Vehicle {
   id: string;
@@ -93,6 +94,7 @@ interface AppState {
   isAuthenticated: boolean;
   authModalOpen: boolean;
   authMode: 'login' | 'register';
+  ownerSection: OwnerSection;
   
   // Booking
   currentBooking: Partial<Booking> | null;
@@ -117,6 +119,7 @@ interface AppState {
   setCurrentUser: (user: User | null) => void;
   setAuthModalOpen: (open: boolean) => void;
   setAuthMode: (mode: 'login' | 'register') => void;
+  setOwnerSection: (section: OwnerSection) => void;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: RegisterData) => Promise<{ success: boolean; needsEmailConfirmation?: boolean }>;
   restoreSession: () => Promise<void>;
@@ -150,6 +153,7 @@ const mapAuthUser = (authUser: { id: string; email?: string; phone?: string; use
     name: typeof metadata.full_name === 'string' ? metadata.full_name : (authUser.email?.split('@')[0] ?? 'Pengguna'),
     email: authUser.email ?? '',
     role,
+    avatar: typeof metadata.avatar_url === 'string' ? metadata.avatar_url : undefined,
     phone: authUser.phone ?? (typeof metadata.phone === 'string' ? metadata.phone : undefined),
   };
 };
@@ -173,6 +177,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
   authModalOpen: false,
   authMode: 'login',
+  ownerSection: 'overview',
   currentBooking: null,
   bookingStep: 0,
   ownerSettings: {
@@ -198,6 +203,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   }),
   setAuthModalOpen: (open) => set({ authModalOpen: open }),
   setAuthMode: (mode) => set({ authMode: mode }),
+  setOwnerSection: (ownerSection) => set({ ownerSection }),
   
   login: async (email: string, password: string) => {
     try {

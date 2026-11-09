@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Car, Calendar, DollarSign, TrendingUp, Plus, Edit2, Eye,
@@ -9,6 +9,7 @@ import {
 import { useAppStore } from '../stores/useAppStore';
 import { vehicles, mockBookings, formatCurrency } from '../data/mockData';
 import Vehicle360Viewer from './Vehicle360Viewer';
+import { supabase } from '../lib/supabase';
 
 type OwnerTab = 'fleet' | 'bookings' | 'inspection' | 'revenue';
 
@@ -139,11 +140,22 @@ export default function OwnerDashboard() {
 // TAB 1: FLEET MANAGEMENT
 // ============================================================================
 
-function FleetManagement() {
+export function FleetManagement({ onAddVehicle, refreshKey = 0 }: { onAddVehicle?: () => void; refreshKey?: number } = {}) {
+  const currentUser = useAppStore((state) => state.currentUser);
+  const [submissions, setSubmissions] = useState<Array<{ id: string; brand: string; model: string; year: number; license_plate: string; status: string }>>([]);
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let cancelled = false;
+    void supabase.from('owner_vehicle_submissions').select('id,brand,model,year,license_plate,status').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+      .then(({ data }) => { if (!cancelled && data) setSubmissions(data); });
+    return () => { cancelled = true; };
+  }, [currentUser?.id, refreshKey]);
+
   return (
     <div className="space-y-6">
       {/* Add Vehicle Button */}
       <motion.button
+        onClick={onAddVehicle}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         className="btn-luxury flex items-center gap-2"
@@ -151,6 +163,8 @@ function FleetManagement() {
         <Plus className="w-4 h-4" />
         Tambah Kendaraan Baru
       </motion.button>
+
+      {submissions.length > 0 && <section className="rounded-2xl border border-white/10 bg-[#141414] p-5"><h3 className="mb-3 font-semibold">Pengajuan kendaraan saya</h3><div className="space-y-2">{submissions.map((submission) => <div key={submission.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 px-4 py-3"><div><p className="font-medium">{submission.brand} {submission.model} · {submission.year}</p><p className="text-sm text-gray-500">{submission.license_plate}</p></div><span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs text-amber-200">{submission.status === 'PENDING_REVIEW' ? 'Menunggu verifikasi' : submission.status === 'APPROVED' ? 'Disetujui' : 'Perlu perbaikan'}</span></div>)}</div></section>}
 
       {/* Vehicle List */}
       <div className="space-y-4">
@@ -248,7 +262,7 @@ function FleetManagement() {
 // TAB 2: BOOKING MANAGEMENT
 // ============================================================================
 
-function BookingManagement({ filter, setFilter }: { filter: string; setFilter: (f: any) => void }) {
+export function BookingManagement({ filter, setFilter }: { filter: string; setFilter: (f: any) => void }) {
   const filters = [
     { id: 'all', label: 'Semua', count: mockBookings.length },
     { id: 'pending', label: 'Pending', count: 1 },
@@ -376,7 +390,7 @@ function BookingManagement({ filter, setFilter }: { filter: string; setFilter: (
 // TAB 3: CHECK-IN/CHECK-OUT
 // ============================================================================
 
-function InspectionManagement() {
+export function InspectionManagement() {
   const [inspectionType, setInspectionType] = useState<'checkin' | 'checkout'>('checkin');
 
   return (
@@ -530,7 +544,7 @@ function InspectionManagement() {
 // TAB 4: REVENUE DASHBOARD
 // ============================================================================
 
-function RevenueDashboard() {
+export function RevenueDashboard() {
   const monthlyData = [65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88, 92];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 

@@ -1,182 +1,92 @@
-import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { MapPin, Navigation, AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Activity, MapPin, Navigation } from 'lucide-react';
 import { useGPSTrackingStore } from '../../stores/useGPSTrackingStore';
-import type { VehicleLocation } from '../../stores/useGPSTrackingStore';
+import type { Geofence } from '../../stores/useGPSTrackingStore';
+import { defaultRuntimeSettings, getRuntimeSettings } from '../../services/runtimeSettingsService';
 
-interface VehicleMapProps {
-  vehicleId: string;
-  vehicleName: string;
-  showGeofences?: boolean;
-  height?: string;
+declare global { interface Window { L?: any } }
+
+interface VehicleMapProps { vehicleId: string; vehicleName: string; showGeofences?: boolean; height?: string; }
+
+function loadLeaflet(): Promise<any> {
+  if (window.L) return Promise.resolve(window.L);
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById('leaflet-js') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', () => window.L ? resolve(window.L) : reject(new Error('Leaflet gagal dimuat')), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Leaflet CDN tidak tersedia')), { once: true });
+      return;
+    }
+    if (!document.getElementById('leaflet-css')) {
+      const css = document.createElement('link');
+      css.id = 'leaflet-css'; css.rel = 'stylesheet';
+      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+    }
+    const script = document.createElement('script');
+    script.id = 'leaflet-js'; script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; script.async = true;
+    script.onload = () => window.L ? resolve(window.L) : reject(new Error('Leaflet gagal dimuat'));
+    script.onerror = () => reject(new Error('Leaflet CDN tidak tersedia'));
+    document.body.appendChild(script);
+  });
 }
 
-export default function VehicleMap({ 
-  vehicleId, 
-  vehicleName, 
-  showGeofences = true,
-  height = '400px' 
-}: VehicleMapProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function VehicleMap({ vehicleId, vehicleName, showGeofences = true, height = '400px' }: VehicleMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const fenceLayerRef = useRef<any>(null);
   const location = useGPSTrackingStore((state) => state.vehicleLocations[vehicleId]);
   const geofences = useGPSTrackingStore((state) => state.geofences);
+  const [mapError, setMapError] = useState('');
 
   useEffect(() => {
-    if (!canvasRef.current || !location) return;
+    let active = true;
+    let resizeListener: (() => void) | undefined;
+    void Promise.all([loadLeaflet(), getRuntimeSettings().catch(() => defaultRuntimeSettings)]).then(([L, config]) => {
+      if (!active || !containerRef.current) return;
+      const initial = location ?? { lat: -6.2088, lng: 106.8456 };
+      const map = L.map(containerRef.current, { scrollWheelZoom: true }).setView([initial.lat, initial.lng], 14);
+      const tileUrl = config.map_tile_url.replace(/\{apiKey\}/g, encodeURIComponent(config.map_api_key));
+      L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        attribution: config.map_attribution || defaultRuntimeSettings.map_attribution,
+      }).addTo(map);
+      markerRef.current = L.circleMarker([initial.lat, initial.lng], { radius: 9, color: '#facc15', fillColor: '#facc15', fillOpacity: 1, weight: 3 }).addTo(map).bindPopup(vehicleName);
+      fenceLayerRef.current = L.featureGroup().addTo(map);
+      mapRef.current = map;
+      resizeListener = () => map.invalidateSize();
+      window.addEventListener('resize', resizeListener);
+      window.setTimeout(resizeListener, 100);
+    }).catch(() => setMapError('Peta belum bisa dimuat. Periksa koneksi internet dan konfigurasi tile peta di menu admin.'));
+    return () => {
+      active = false;
+      if (resizeListener) window.removeEventListener('resize', resizeListener);
+      mapRef.current?.remove();
+      mapRef.current = null; markerRef.current = null; fenceLayerRef.current = null;
+    };
+  }, [vehicleId, vehicleName]);
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-
-    // Clear canvas
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid
-    ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 1;
-    const gridSize = 50;
-    
-    for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    
-    for (let y = 0; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    // Draw geofences
-    if (showGeofences) {
-      geofences.forEach((geofence) => {
-        if (!geofence.isActive) return;
-
-        if (geofence.type === 'circle' && geofence.center) {
-          // Convert lat/lng to canvas coordinates (simplified)
-          const x = canvas.width / 2 + (geofence.center.lng - location.lng) * 10000;
-          const y = canvas.height / 2 - (geofence.center.lat - location.lat) * 10000;
-          const radius = (geofence.radius || 100) / 10; // Scale down for display
-
-          ctx.strokeStyle = geofence.alertOnEnter ? '#f59e0b' : '#3b82f6';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.arc(x, y, radius, 0, 2 * Math.PI);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Fill with transparency
-          ctx.fillStyle = geofence.alertOnEnter ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)';
-          ctx.fill();
-
-          // Label
-          ctx.fillStyle = '#fff';
-          ctx.font = '12px "DM Sans"';
-          ctx.fillText(geofence.name, x + radius + 5, y);
-        }
-      });
-    }
-
-    // Draw vehicle marker
-    const vehicleX = canvas.width / 2;
-    const vehicleY = canvas.height / 2;
-
-    // Outer circle (pulse effect)
-    ctx.strokeStyle = '#D4AF37';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(vehicleX, vehicleY, 20, 0, 2 * Math.PI);
-    ctx.stroke();
-
-    // Inner circle
-    ctx.fillStyle = '#D4AF37';
-    ctx.beginPath();
-    ctx.arc(vehicleX, vehicleY, 8, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Direction indicator
-    const angle = (location.heading - 90) * Math.PI / 180;
-    const arrowLength = 15;
-    const arrowX = vehicleX + arrowLength * Math.cos(angle);
-    const arrowY = vehicleY + arrowLength * Math.sin(angle);
-
-    ctx.strokeStyle = '#D4AF37';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(vehicleX, vehicleY);
-    ctx.lineTo(arrowX, arrowY);
-    ctx.stroke();
-
-    // Speed indicator
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px "DM Sans"';
-    ctx.fillText(`${location.speed.toFixed(0)} km/h`, vehicleX + 25, vehicleY - 10);
-
-    // Vehicle name
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 16px "DM Sans"';
-    ctx.fillText(vehicleName, 10, 25);
-
-    // Coordinates
-    ctx.fillStyle = '#888';
-    ctx.font = '12px "DM Sans"';
-    ctx.fillText(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`, 10, canvas.height - 10);
-
-    // Timestamp
-    const time = new Date(location.timestamp).toLocaleTimeString('id-ID');
-    ctx.fillText(`Update: ${time}`, canvas.width - 150, canvas.height - 10);
-
-  }, [location, geofences, vehicleName, showGeofences]);
-
-  if (!location) {
-    return (
-      <div 
-        className="rounded-2xl bg-[#141414] border border-white/5 flex items-center justify-center"
-        style={{ height }}
-      >
-        <div className="text-center">
-          <MapPin className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500">Menunggu data GPS...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const L = window.L;
+    if (!L || !mapRef.current || !location || !markerRef.current) return;
+    markerRef.current.setLatLng([location.lat, location.lng]);
+    markerRef.current.setPopupContent(`${vehicleName}<br/>${location.speed.toFixed(0)} km/jam`);
+    mapRef.current.panTo([location.lat, location.lng], { animate: true, duration: 0.5 });
+    const layer = fenceLayerRef.current;
+    layer?.clearLayers();
+    if (!showGeofences) return;
+    geofences.filter((fence) => fence.isActive && fence.type === 'circle' && fence.center).forEach((fence: Geofence) => {
+      L.circle([fence.center!.lat, fence.center!.lng], { radius: fence.radius ?? 100, color: fence.alertOnEnter ? '#f59e0b' : '#38bdf8', fillOpacity: 0.08 }).bindTooltip(fence.name).addTo(layer);
+    });
+  }, [location, geofences, showGeofences, vehicleName]);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/5">
-      <canvas 
-        ref={canvasRef} 
-        className="w-full"
-        style={{ height }}
-      />
-      
-      {/* Live indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30"
-      >
-        <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-        <span className="text-xs text-red-400 font-medium">LIVE</span>
-      </motion.div>
-
-      {/* Speed badge */}
-      <div className="absolute bottom-4 right-4 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10">
-        <div className="flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-gold-400" />
-          <span className="text-lg font-bold text-white">{location.speed.toFixed(0)}</span>
-          <span className="text-xs text-gray-400">km/h</span>
-        </div>
-      </div>
+    <div className="relative overflow-hidden rounded-2xl border border-white/10">
+      <div ref={containerRef} style={{ height }} className="z-0 w-full bg-[#18212a]" role="application" aria-label={`Peta lokasi ${vehicleName}`} />
+      {mapError && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-[#141414] p-6 text-center text-sm text-gray-300">{mapError}</div>}
+      {!mapError && <><div className="pointer-events-none absolute left-3 top-3 z-[500] flex items-center gap-2 rounded-full border border-amber-300/20 bg-black/75 px-3 py-1.5 text-xs text-amber-100"><Activity className="h-3.5 w-3.5"/>SIMULASI · {vehicleName}</div>
+        {location && <div className="pointer-events-none absolute bottom-3 right-3 z-[500] rounded-xl border border-white/10 bg-black/75 px-3 py-2"><div className="flex items-center gap-2"><Navigation className="h-4 w-4 text-yellow-300"/><span className="font-semibold text-white">{location.speed.toFixed(0)}</span><span className="text-xs text-gray-300">km/jam</span></div><span className="mt-1 block text-[10px] text-gray-400"><MapPin className="mr-1 inline h-3 w-3"/>{location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span></div>}</>}
     </div>
   );
 }

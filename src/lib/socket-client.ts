@@ -4,31 +4,35 @@ import { io, Socket } from 'socket.io-client';
 // SOCKET.IO CLIENT - Frontend Implementation
 // ============================================================================
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 class SocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private configuredUrl = '';
 
   /**
    * Connect to Socket.io server
    */
-  connect(): Socket {
-    if (this.socket?.connected) {
+  connect(url = SOCKET_URL, path = '/socket.io', accessToken?: string): Socket | null {
+    if (!url) return null;
+    if (this.socket?.connected && this.configuredUrl === url) {
       return this.socket;
     }
 
-    this.socket = io(SOCKET_URL, {
+    if (this.socket) this.socket.disconnect();
+    this.configuredUrl = url;
+
+    this.socket = io(url, {
+      path,
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
-      auth: {
-        token: localStorage.getItem('auth_token'),
-      },
+      auth: accessToken ? { token: accessToken } : {},
     });
 
     this.setupEventListeners();

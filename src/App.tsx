@@ -21,6 +21,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailedPage from './pages/PaymentFailedPage';
 import AdminGPSSettings from './pages/admin/AdminGPSSettings';
 import VehicleMonitoring from './pages/owner/VehicleMonitoring';
+import AdminVehicleReviewPage from './pages/admin/AdminVehicleReviewPage';
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
@@ -30,6 +31,7 @@ function App() {
   const { currentPage, currentUser, restoreSession } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
   const isPublicHome = currentPage === 'home';
+  const isDashboardShell = currentPage === 'dashboard' || currentPage === 'admin-gps-settings' || currentPage === 'admin-vehicle-review' || currentPage === 'vehicle-monitoring';
 
   useEffect(() => {
     void restoreSession();
@@ -77,6 +79,8 @@ function App() {
         return <PaymentFailedPage />;
       case 'admin-gps-settings':
         return <AdminGPSSettings />;
+      case 'admin-vehicle-review':
+        return <AdminVehicleReviewPage />;
       case 'vehicle-monitoring':
         // Get vehicle info from store or use default
         const vehicleId = useAppStore.getState().selectedVehicle?.id || 'vehicle-1';
@@ -94,7 +98,7 @@ function App() {
 
         {!isLoading && (
           <>
-            <Navbar />
+            {!isDashboardShell && <Navbar />}
             {renderPage()}
             
             {/* Real-time Notification System */}

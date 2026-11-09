@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, Plus, DollarSign, Calendar, Car, TrendingUp
@@ -6,9 +7,17 @@ import { useAppStore } from '../stores/useAppStore';
 import { StatsCard, RevenueChart, FleetStatus, RecentBookings } from './dashboard';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
+import { BookingManagement, FleetManagement, InspectionManagement, RevenueDashboard } from './OwnerDashboard';
+import OwnerSettingsPanel from './OwnerSettingsPanel';
+import OwnerGPSPanel from './OwnerGPSPanel';
+import AdvancedAnalytics from './AdvancedAnalytics';
+import AddVehicleForm from './AddVehicleForm';
 
 export default function OwnerDashboardContent() {
-  const { currentUser } = useAppStore();
+  const { currentUser, ownerSection, setOwnerSection } = useAppStore();
+  const [bookingFilter, setBookingFilter] = useState('all');
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [submissionRefresh, setSubmissionRefresh] = useState(0);
 
   const ownerName = currentUser?.name || 'John';
 
@@ -18,6 +27,10 @@ export default function OwnerDashboardContent() {
     month: 'long',
     day: 'numeric',
   });
+  const sectionTitle = {
+    overview: 'Ringkasan', fleet: 'Armada Kendaraan', bookings: 'Pemesanan', revenue: 'Pendapatan',
+    check: 'Check-in / Check-out', analytics: 'Analitik', gps: 'GPS Kendaraan', settings: 'Pengaturan Pengguna',
+  }[ownerSection];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
@@ -35,7 +48,7 @@ export default function OwnerDashboardContent() {
                 animate={{ opacity: 1, y: 0 }}
                 className="font-serif text-3xl"
               >
-                Selamat Pagi, <span className="text-yellow-400">{ownerName}</span> 👋
+                {ownerSection === 'overview' ? <>Selamat Pagi, <span className="text-yellow-400">{ownerName}</span> 👋</> : sectionTitle}
               </motion.h1>
               <p className="text-sm text-gray-500 mt-1">
                 {currentDate} • Armada Anda siap menghasilkan
@@ -48,16 +61,18 @@ export default function OwnerDashboardContent() {
                   3
                 </span>
               </button>
-              <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-semibold hover:scale-105 transition flex items-center gap-2">
+              {ownerSection === 'fleet' && <button onClick={() => setShowAddVehicle(true)} className="px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-semibold hover:scale-105 transition flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 Tambah Kendaraan
-              </button>
+              </button>}
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="p-8 space-y-6">
+        <div className="p-5 sm:p-8 space-y-6">
+          {ownerSection !== 'overview' && <div className="mb-2"><h2 className="text-2xl font-semibold">{sectionTitle}</h2><p className="mt-1 text-sm text-gray-500">Kelola dan pantau {sectionTitle.toLowerCase()} rental Anda.</p></div>}
+          {ownerSection === 'overview' && <>
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
@@ -106,7 +121,16 @@ export default function OwnerDashboardContent() {
 
           {/* Recent Bookings */}
           <RecentBookings />
+          </>}
+          {ownerSection === 'fleet' && <FleetManagement onAddVehicle={() => setShowAddVehicle(true)} refreshKey={submissionRefresh} />}
+          {ownerSection === 'bookings' && <BookingManagement filter={bookingFilter} setFilter={setBookingFilter} />}
+          {ownerSection === 'check' && <InspectionManagement />}
+          {ownerSection === 'revenue' && <RevenueDashboard />}
+          {ownerSection === 'analytics' && <AdvancedAnalytics />}
+          {ownerSection === 'gps' && <OwnerGPSPanel />}
+          {ownerSection === 'settings' && <OwnerSettingsPanel />}
         </div>
+        {showAddVehicle && <AddVehicleForm onClose={() => setShowAddVehicle(false)} onSubmitted={() => setSubmissionRefresh((value) => value + 1)} />}
       </main>
 
       {/* Mobile Bottom Navigation */}

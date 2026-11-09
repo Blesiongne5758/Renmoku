@@ -1,20 +1,57 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Settings, MapPin, Bell, Shield, Clock, 
   Save, RotateCcw, AlertCircle, CheckCircle2,
-  ToggleLeft, ToggleRight
+  ToggleLeft, ToggleRight, Globe, Radio
 } from 'lucide-react';
 import { useGPSTrackingStore } from '../../stores/useGPSTrackingStore';
 import { toast } from 'sonner';
+import { defaultRuntimeSettings, getRuntimeSettings, saveRuntimeSettings, RuntimeSettings } from '../../services/runtimeSettingsService';
+import { useSocketContext } from '../../components/SocketProvider';
 
 export default function AdminGPSSettings() {
   const { globalSettings, updateGlobalSettings } = useGPSTrackingStore();
+  const { isConnected } = useSocketContext();
   const [hasChanges, setHasChanges] = useState(false);
+  const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSettings>(defaultRuntimeSettings);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    setHasChanges(false);
-    toast.success('✅ Pengaturan GPS berhasil disimpan');
+  useEffect(() => {
+    void getRuntimeSettings().then((settings) => {
+      setRuntimeSettings(settings);
+      updateGlobalSettings({
+        trackingEnabled: settings.gps_tracking_enabled,
+        updateInterval: settings.gps_update_interval,
+        historyRetention: settings.gps_history_retention,
+        enableNotifications: settings.gps_notifications,
+        enableGeofencing: settings.gps_geofencing,
+        enableBehaviorMonitoring: settings.gps_behavior_monitoring,
+        enableEngineControl: settings.gps_engine_control,
+      });
+    });
+  }, [updateGlobalSettings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveRuntimeSettings({
+        ...runtimeSettings,
+        gps_tracking_enabled: globalSettings.trackingEnabled,
+        gps_update_interval: globalSettings.updateInterval,
+        gps_history_retention: globalSettings.historyRetention,
+        gps_notifications: globalSettings.enableNotifications,
+        gps_geofencing: globalSettings.enableGeofencing,
+        gps_behavior_monitoring: globalSettings.enableBehaviorMonitoring,
+        gps_engine_control: globalSettings.enableEngineControl,
+      });
+      setHasChanges(false);
+      toast.success('Pengaturan GPS, peta, dan realtime berhasil disimpan.');
+    } catch {
+      toast.error('Pengaturan gagal disimpan. Pastikan SQL owner_features.sql sudah diterapkan dan akun Anda memiliki akses admin.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -27,8 +64,9 @@ export default function AdminGPSSettings() {
       enableBehaviorMonitoring: true,
       enableEngineControl: true,
     });
-    setHasChanges(false);
-    toast.info('Pengaturan direset ke default');
+    setRuntimeSettings(defaultRuntimeSettings);
+    setHasChanges(true);
+    toast.info('Nilai default disiapkan. Simpan perubahan untuk menerapkannya.');
   };
 
   const updateSetting = (key: keyof typeof globalSettings, value: any) => {
@@ -269,6 +307,28 @@ export default function AdminGPSSettings() {
             </div>
           </motion.div>
         </div>
+
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl border border-white/10 bg-[#141414] p-6">
+          <div className="mb-5"><h2 className="flex items-center gap-2 text-xl font-semibold"><Globe className="h-5 w-5 text-gold-400" />Peta gratis untuk pemilik rental</h2><p className="mt-1 text-sm text-gray-400">Konfigurasi layer peta yang dipakai pada halaman GPS pemilik.</p></div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">Penyedia peta</span><select value={runtimeSettings.map_provider} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, map_provider: e.target.value as RuntimeSettings['map_provider'] }); setHasChanges(true); }} className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white"><option value="openstreetmap">Leaflet + OpenStreetMap (gratis)</option><option value="custom">Server tile OSM-compatible</option></select></label>
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">Tile URL</span><input value={runtimeSettings.map_tile_url} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, map_tile_url: e.target.value }); setHasChanges(true); }} placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white" /></label>
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">Attribution lisensi</span><input value={runtimeSettings.map_attribution} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, map_attribution: e.target.value }); setHasChanges(true); }} className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white" /></label>
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">API key publik (jika tile provider memerlukannya)</span><input type="password" autoComplete="off" value={runtimeSettings.map_api_key} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, map_api_key: e.target.value }); setHasChanges(true); }} className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white" /></label>
+          </div>
+          <p className="mt-3 text-xs text-gray-500">OpenStreetMap tidak membutuhkan API key. Tile server publik bersifat best-effort; untuk trafik komersial tinggi, gunakan penyedia tile OSM yang memberi kuota/SLA. Attribution © OpenStreetMap contributors harus tetap terlihat.</p>
+        </motion.section>
+
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl border border-white/10 bg-[#141414] p-6">
+          <div className="mb-5"><h2 className="flex items-center gap-2 text-xl font-semibold"><Radio className="h-5 w-5 text-gold-400" />Realtime pemilik melalui Socket.IO</h2><p className="mt-1 text-sm text-gray-400">Endpoint ini dipakai bersama oleh client admin dan pemilik untuk notifikasi booking serta pembaruan armada.</p></div>
+          <p className={`mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs ${isConnected ? 'bg-emerald-400/10 text-emerald-200' : 'bg-white/5 text-gray-400'}`}><span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-gray-500'}`} />{isConnected ? 'Terhubung ke server realtime' : 'Belum terhubung'}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-4 py-3"><span><span className="block text-sm text-white">Aktifkan koneksi realtime</span><span className="text-xs text-gray-500">Membutuhkan Socket.IO server aktif</span></span><input type="checkbox" checked={runtimeSettings.realtime_enabled} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, realtime_enabled: e.target.checked }); setHasChanges(true); }} className="h-4 w-4 accent-yellow-400" /></label>
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">URL server Socket.IO</span><input value={runtimeSettings.realtime_url} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, realtime_url: e.target.value }); setHasChanges(true); }} placeholder="https://realtime.example.com" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white" /></label>
+            <label className="space-y-1.5"><span className="text-sm text-gray-300">Socket path</span><input value={runtimeSettings.realtime_path} onChange={(e) => { setRuntimeSettings({ ...runtimeSettings, realtime_path: e.target.value }); setHasChanges(true); }} placeholder="/socket.io" className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white" /></label>
+          </div>
+          <p className="mt-3 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-100/80">InfinityFree hanya menyajikan file statis dan tidak menjalankan Socket.IO server. Isi endpoint dari server realtime yang di-host terpisah; koneksi pemilik tetap mati bila endpoint kosong atau server belum aktif.</p>
+        </motion.section>
 
         {/* Info Box */}
         <motion.div

@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Car, Calendar, DollarSign, 
-  CheckCircle, TrendingUp, Settings, Bell, LogOut,
+  CheckCircle, TrendingUp, Settings, Bell, LogOut, Navigation,
   Menu, X, ChevronRight
 } from 'lucide-react';
-import { useAppStore } from '../stores/useAppStore';
+import { OwnerSection, useAppStore } from '../stores/useAppStore';
 
 const ownerMenu = [
   { icon: LayoutDashboard, label: 'Overview', href: 'dashboard', subpage: 'overview' },
@@ -16,13 +16,14 @@ const ownerMenu = [
   { icon: DollarSign, label: 'Revenue', href: 'dashboard', subpage: 'revenue' },
   { icon: CheckCircle, label: 'Check-in/out', href: 'dashboard', subpage: 'check' },
   { icon: TrendingUp, label: 'Analytics', href: 'dashboard', subpage: 'analytics' },
+  { icon: Navigation, label: 'GPS Kendaraan', href: 'dashboard', subpage: 'gps' },
   { icon: Settings, label: 'Settings', href: 'dashboard', subpage: 'settings' },
 ];
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { currentPage, currentUser, setCurrentPage, logout } = useAppStore();
+  const { currentPage, ownerSection, currentUser, setCurrentPage, setOwnerSection, logout } = useAppStore();
 
   // Detect screen size
   useEffect(() => {
@@ -49,8 +50,9 @@ export default function Sidebar() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen, isMobile]);
 
-  const handleMenuClick = (href: string) => {
-    setCurrentPage(href);
+  const handleMenuClick = (section: OwnerSection) => {
+    setOwnerSection(section);
+    setCurrentPage('dashboard');
     if (isMobile) setIsOpen(false);
   };
 
@@ -82,11 +84,11 @@ export default function Sidebar() {
       {/* Menu */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {ownerMenu.map((item, idx) => {
-          const isActive = currentPage === item.href;
+          const isActive = currentPage === item.href && ownerSection === item.subpage;
           return (
             <motion.button
               key={item.label}
-              onClick={() => handleMenuClick(item.href)}
+              onClick={() => handleMenuClick(item.subpage as OwnerSection)}
               initial={isMobile ? { opacity: 0, x: -20 } : false}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}

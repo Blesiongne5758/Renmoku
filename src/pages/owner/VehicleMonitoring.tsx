@@ -30,9 +30,14 @@ export default function VehicleMonitoring({ vehicleId, vehicleName }: VehicleMon
     state.maintenanceReminders.filter((r) => r.vehicleId === vehicleId)
   );
   const engineControl = useGPSTrackingStore((state) => state.engineControls[vehicleId]);
+  const trackingEnabled = useGPSTrackingStore((state) => state.globalSettings.trackingEnabled);
 
   // Start tracking on mount
   useEffect(() => {
+    if (!trackingEnabled) {
+      gpsTrackingService.stopTracking(vehicleId);
+      return;
+    }
     if (!gpsTrackingService.isTracking(vehicleId)) {
       const initialLocation = {
         lat: -6.2088 + (Math.random() - 0.5) * 0.1,
@@ -48,7 +53,7 @@ export default function VehicleMonitoring({ vehicleId, vehicleName }: VehicleMon
     return () => {
       // Don't stop tracking on unmount (keep tracking in background)
     };
-  }, [vehicleId]);
+  }, [vehicleId, trackingEnabled]);
 
   const handleEngineCommand = async (command: 'start' | 'stop') => {
     if (command === 'start') {

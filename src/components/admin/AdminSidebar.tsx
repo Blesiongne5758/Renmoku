@@ -5,19 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Car, Calendar, DollarSign,
   CheckCircle, AlertTriangle, Settings, Bell, LogOut,
-  Menu, X, Crown
+  Menu, X, Crown, Navigation
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 
 const adminMenu = [
   { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', badge: null },
   { icon: Users, label: 'Users', href: 'users', badge: null },
-  { icon: Car, label: 'Vehicles', href: 'vehicles', badge: null },
+  { icon: Car, label: 'Vehicles', href: 'admin-vehicle-review', badge: null },
   { icon: Calendar, label: 'Bookings', href: 'bookings', badge: null },
   { icon: CheckCircle, label: 'Verifikasi', href: 'verification', badge: 12 },
   { icon: DollarSign, label: 'Payout', href: 'payout', badge: 3 },
   { icon: AlertTriangle, label: 'Dispute', href: 'dispute', badge: 5 },
   { icon: Settings, label: 'Settings', href: 'settings', badge: null },
+  { icon: Navigation, label: 'GPS & Realtime', href: 'admin-gps-settings', badge: null },
 ];
 
 export default function AdminSidebar() {

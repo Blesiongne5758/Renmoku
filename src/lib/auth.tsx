@@ -143,6 +143,8 @@ export function requireOwner(redirectPath = '/home') {
  */
 export const ROUTE_PROTECTION = {
   '/admin': ['ADMIN'],
+  '/admin-gps-settings': ['ADMIN'],
+  '/admin-vehicle-review': ['ADMIN'],
   '/dashboard/owner': ['OWNER', 'ADMIN'],
   '/dashboard/renter': ['RENTER', 'ADMIN'],
   '/dashboard': ['RENTER', 'OWNER', 'ADMIN'],
