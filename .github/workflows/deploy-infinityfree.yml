@@ -1,0 +1,62 @@
+# Deploy frontend statis ke InfinityFree dari GitHub.
+# Secrets: Settings → Secrets and variables → Actions
+name: Deploy InfinityFree
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-ftp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          VITE_APP_ENV: production
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+          VITE_DEBUG: "false"
+        run: npm run build
+
+      - name: Ensure .htaccess in dist
+        run: |
+          if [ ! -f dist/.htaccess ]; then
+            cp public/.htaccess dist/.htaccess
+          fi
+          test -f dist/index.html
+
+      - name: Upload dist/ to InfinityFree htdocs
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_ROOT: ${{ secrets.FTP_ROOT }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          : "${FTP_HOST:?Set secret FTP_HOST (biasanya ftpupload.net)}"
+          : "${FTP_USER:?Set secret FTP_USER}"
+          : "${FTP_PASS:?Set secret FTP_PASS}"
+          ROOT="${FTP_ROOT:-htdocs}"
+          lftp -u "$FTP_USER,$FTP_PASS" "$FTP_HOST" <<EOF
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          set net:max-retries 3
+          set net:timeout 20
+          mirror --reverse --verbose --exclude-glob cgi-bin/** ./dist/ "${ROOT}/"
+          bye
+          EOF

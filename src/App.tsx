@@ -85,7 +85,7 @@ function App() {
   return (
     <SocketProvider>
       <div className="min-h-screen bg-luxury-900 text-white overflow-x-hidden">
-        <LoadingScreen onComplete={() => setIsLoading(false)} />
+        {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
         {!isLoading && (
           <>
