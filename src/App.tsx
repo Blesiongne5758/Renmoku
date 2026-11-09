@@ -22,14 +22,18 @@ import PaymentFailedPage from './pages/PaymentFailedPage';
 import AdminGPSSettings from './pages/admin/AdminGPSSettings';
 import VehicleMonitoring from './pages/owner/VehicleMonitoring';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
 import { canAccessRoute } from './lib/auth';
 
 function App() {
-  const { currentPage, currentUser } = useAppStore();
+  const { currentPage, currentUser, restoreSession } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
   const isPublicHome = currentPage === 'home';
+
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   const renderPage = () => {
     // Route protection - check access before rendering
