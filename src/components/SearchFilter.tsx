@@ -19,9 +19,10 @@ export default function SearchFilter() {
           <div className="w-8 h-8 rounded-lg neu-gold flex items-center justify-center">
             <SlidersHorizontal className="w-4 h-4 text-gold-400" />
           </div>
-          <h3 className="font-[Playfair_Display] text-lg font-semibold text-white">
-            Cari Kendaraan
-          </h3>
+          <div>
+            <h3 className="font-[Playfair_Display] text-lg font-semibold text-white">Cari kendaraan</h3>
+            <p className="mt-0.5 text-xs text-gray-500">Atur lokasi, tanggal, dan tipe untuk menyaring pilihan.</p>
+          </div>
         </div>
 
         {/* Search grid */}

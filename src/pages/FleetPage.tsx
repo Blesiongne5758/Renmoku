@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Vehicle, useAppStore } from '../stores/useAppStore';
 import { vehicles } from '../data/mockData';
 import VehicleCard from '../components/VehicleCard';
-import VehicleShowcase360 from '../components/VehicleShowcase360';
 import SearchFilter from '../components/SearchFilter';
 import { supabase } from '../lib/supabase';
 import VehicleModelViewer from '../components/VehicleModelViewer';
@@ -12,7 +11,6 @@ type PublishedModel = { id:string; brand:string; model:string; year:number; tran
 
 export default function FleetPage() {
   const { setCurrentPage, setSelectedVehicle, setShowBookingModal } = useAppStore();
-  const [showcase360, setShowcase360] = useState<Vehicle | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [publishedModels, setPublishedModels] = useState<PublishedModel[]>([]);
 
@@ -92,7 +90,6 @@ export default function FleetPage() {
               key={vehicle.id}
               vehicle={vehicle}
               index={index}
-              onView360={setShowcase360}
               onBook={handleBook}
             />
           ))}
@@ -137,15 +134,6 @@ export default function FleetPage() {
         </motion.div>
       </div>
 
-      {/* 360 Showcase Modal */}
-      <AnimatePresence>
-        {showcase360 && (
-          <VehicleShowcase360
-            vehicle={showcase360}
-            onClose={() => setShowcase360(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
