@@ -1,6 +1,12 @@
 name: Deploy Supabase AI Spin
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/deploy-supabase-ai-spin.yml'
   workflow_dispatch:
 
 jobs:
