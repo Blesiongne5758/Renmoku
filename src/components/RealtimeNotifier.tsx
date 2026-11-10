@@ -1,45 +1,36 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useSocket } from '../hooks/useSocket';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useAppStore } from '../stores/useAppStore';
+import { useSocketContext } from './SocketProvider';
 
+/** Mirrors incoming in-app notifications to toast messages across the app. */
 export default function RealtimeNotifier() {
-  const { currentUser } = useAppStore();
-  const userId = currentUser?.id;
+  const { notifications, bookingUpdates, newBookings } = useSocketContext();
+  const seen = useRef(new Set<string>());
 
-  const { isConnected } = useSocket({
-    userId,
-    onNewBooking: (data) => {
-      toast.success(`🎉 Booking Baru!`, {
-        description: `${data.renterName} memesan ${data.vehicleName} - Rp ${data.totalPrice.toLocaleString('id-ID')}`,
-        duration: 5000,
+  useEffect(() => {
+    for (const booking of newBookings) {
+      const key = `new:${booking.bookingId}`;
+      if (seen.current.has(key)) continue;
+      seen.current.add(key);
+      toast.success('Booking baru', {
+        description: `${booking.renterName} memesan ${booking.vehicleName} · Rp ${booking.totalPrice.toLocaleString('id-ID')}`,
       });
-    },
-    onBookingUpdate: (data) => {
-      const statusText = data.status === 'CONFIRMED' ? '✅ Disetujui' : '❌ Ditolak';
-      toast.info(`Booking ${statusText}`, {
-        description: `${data.vehicleName} - ${statusText} oleh pemilik`,
-      });
-    },
-    onPaymentUpdate: (data) => {
-      toast.success(`💰 Pembayaran Diterima`, {
-        description: `Pembayaran ${data.type} sebesar Rp ${data.amount.toLocaleString('id-ID')}`,
-      });
-    },
-  });
+    }
+    for (const update of bookingUpdates) {
+      const key = `update:${update.bookingId}:${update.status}`;
+      if (seen.current.has(key)) continue;
+      seen.current.add(key);
+      toast.info(`Status booking: ${update.status}`, { description: update.message || update.vehicleName });
+    }
+    for (const [index, notification] of notifications.entries()) {
+      const key = `general:${notification.title}:${notification.message}`;
+      if (seen.current.has(key)) continue;
+      seen.current.add(key);
+      toast(notification.title, { description: notification.message, id: key });
+      if (index > 50) break;
+    }
+    if (seen.current.size > 300) seen.current.clear();
+  }, [notifications, bookingUpdates, newBookings]);
 
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs backdrop-blur-xl border ${
-        isConnected 
-          ? 'bg-green-500/20 border-green-500/30 text-green-400' 
-          : 'bg-red-500/20 border-red-500/30 text-red-400'
-      }`}>
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-        {isConnected ? 'Live' : 'Offline'}
-      </div>
-    </div>
-  );
+  return null;
 }

@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import {
-  Bell,
   ChevronDown,
   Crown,
   LogOut,
@@ -13,6 +12,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import AdminStatsGrid from './AdminStatsGrid';
 import AdminSidebar from './AdminSidebar';
 import AdminWorkspaceSection from './AdminWorkspaceSection';
+import NotificationBell from '../NotificationBell';
 
 export default function AdminDashboardContent() {
   const { currentUser, logout, setCurrentPage, adminSection } = useAppStore();
@@ -43,13 +43,7 @@ export default function AdminDashboardContent() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Notification */}
-              <button className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">
-                  28
-                </span>
-              </button>
+              <NotificationBell />
               {/* User Menu */}
               <div className="relative">
                 <button

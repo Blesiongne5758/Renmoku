@@ -15,6 +15,8 @@ export interface RuntimeSettings {
   gps_geofencing: boolean;
   gps_behavior_monitoring: boolean;
   gps_engine_control: boolean;
+  ai_spin_credits_enabled: boolean;
+  spin360_studio_enabled: boolean;
 }
 
 export const defaultRuntimeSettings: RuntimeSettings = {
@@ -32,6 +34,8 @@ export const defaultRuntimeSettings: RuntimeSettings = {
   gps_geofencing: true,
   gps_behavior_monitoring: true,
   gps_engine_control: true,
+  ai_spin_credits_enabled: false,
+  spin360_studio_enabled: false,
 };
 
 export async function getRuntimeSettings(): Promise<RuntimeSettings> {

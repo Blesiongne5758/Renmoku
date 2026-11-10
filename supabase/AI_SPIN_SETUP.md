@@ -1,6 +1,6 @@
 # AI Spin 360 setup
 
-AI Spin uses Supabase Edge Functions, Meshy Multi-Image-to-3D, and Supabase Storage. Payments use a static QRIS configured by an admin; owners upload proof, and credits are granted only after admin approval. Apply `owner_features.sql`, `ai_spin_billing.sql`, and then `ai_spin_manual_qris.sql` in the Supabase SQL Editor.
+AI Spin uses Supabase Edge Functions, Meshy Multi-Image-to-3D, and Supabase Storage. Payments use a static QRIS configured by an admin; owners upload proof, and credits are granted only after admin approval. Apply `owner_features.sql`, `ai_spin_billing.sql`, `ai_spin_manual_qris.sql`, and `owner_dashboard_runtime.sql` in the Supabase SQL Editor, in that order. The last script enables booking Realtime, adds persisted check-in/check-out records, adds guarded owner vehicle deletion, and creates admin feature flags. Both AI Spin flags are set to **off** when that script runs.
 
 ## Configure the provider and payments
 
@@ -12,7 +12,7 @@ In Supabase **Project Settings → Edge Functions → Secrets**, configure:
 
 Set `ai_spin_settings.meshy_credits_per_model` to the actual Meshy usage for the chosen quality. The default task requests Meshy 7.1, 2K textured GLB and normally consumes 30 API credits. Package prices are computed as AI provider cost plus 50% of that cost for Renmoku. Verify the credits consumed in the Meshy account before turning on paid generation.
 
-For manual Edge Function deploy from GitHub Actions, add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF` as repository Actions secrets, apply the SQL above first, then run **Deploy Supabase AI Spin** from the Actions tab. This workflow only deploys functions; database SQL and provider secrets must already be configured.
+For manual Edge Function deploy from GitHub Actions, add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF` as repository Actions secrets, apply the SQL above first, then run **Deploy Supabase AI Spin** from the Actions tab. This workflow only deploys functions; database SQL and provider secrets must already be configured. The order and model-generation Edge Functions reject requests while their respective admin feature flags are off.
 
 Never place the Meshy API key in frontend variables.
 

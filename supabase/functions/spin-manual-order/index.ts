@@ -15,6 +15,8 @@ Deno.serve(async (request) => {
   const db = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: { user } } = await db.auth.getUser(authorization.replace(/^Bearer\s+/i, ''));
   if (!user) return json({ error: 'Sesi pengguna tidak valid.' }, 401);
+  const { data: featureFlags } = await db.from('app_runtime_settings').select('ai_spin_credits_enabled').eq('id', 1).maybeSingle();
+  if (!featureFlags?.ai_spin_credits_enabled) return json({ error: 'Pembelian kredit AI Spin sedang dinonaktifkan.' }, 403);
 
   try {
     const body = await request.json();

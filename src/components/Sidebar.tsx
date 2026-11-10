@@ -8,6 +8,7 @@ import {
   Menu, X, ChevronRight
 } from 'lucide-react';
 import { OwnerSection, useAppStore } from '../stores/useAppStore';
+import { defaultRuntimeSettings, getRuntimeSettings } from '../services/runtimeSettingsService';
 
 const ownerMenu = [
   { icon: LayoutDashboard, label: 'Overview', href: 'dashboard', subpage: 'overview' },
@@ -24,6 +25,7 @@ const ownerMenu = [
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [spinStudioEnabled, setSpinStudioEnabled] = useState(defaultRuntimeSettings.spin360_studio_enabled);
   const { currentPage, ownerSection, currentUser, setCurrentPage, setOwnerSection, logout } = useAppStore();
 
   // Detect screen size
@@ -35,6 +37,8 @@ export default function Sidebar() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => { void getRuntimeSettings().then((settings) => setSpinStudioEnabled(settings.spin360_studio_enabled)); }, []);
 
   // Close drawer on route change (mobile)
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function Sidebar() {
 
       {/* Menu */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {ownerMenu.map((item, idx) => {
+        {ownerMenu.filter((item) => item.subpage !== 'spin360' || spinStudioEnabled).map((item, idx) => {
           const isActive = currentPage === item.href && ownerSection === item.subpage;
           return (
             <motion.button

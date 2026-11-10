@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Settings, ToggleLeft, ToggleRight, Save, RotateCcw, 
@@ -6,12 +6,31 @@ import {
   CheckCircle, AlertCircle, History
 } from 'lucide-react';
 import { useAdminConfigStore } from '../../stores/useAdminConfigStore';
+import { defaultRuntimeSettings, getRuntimeSettings, saveRuntimeSettings, RuntimeSettings } from '../../services/runtimeSettingsService';
 
 export default function AdminConfigPanel() {
   const { config, updateConfig, resetToDefaults } = useAdminConfigStore();
   const [activeCategory, setActiveCategory] = useState('core');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSettings>(defaultRuntimeSettings);
+  const [spinSaving, setSpinSaving] = useState(false);
+
+  useEffect(() => { void getRuntimeSettings().then(setRuntimeSettings); }, []);
+
+  const setSpinFeature = async (key: 'ai_spin_credits_enabled' | 'spin360_studio_enabled', enabled: boolean) => {
+    const next = { ...runtimeSettings, [key]: enabled };
+    setSpinSaving(true);
+    try {
+      await saveRuntimeSettings(next);
+      setRuntimeSettings(next);
+      setSaveSuccess(true);
+      window.setTimeout(() => setSaveSuccess(false), 2500);
+    } catch {
+      setRuntimeSettings(runtimeSettings);
+      alert('Pengaturan Spin gagal disimpan. Periksa koneksi dan hak akses admin.');
+    } finally { setSpinSaving(false); }
+  };
 
   const categories = [
     { id: 'core', label: 'Core Features', icon: Settings, color: 'gold' },
@@ -147,6 +166,19 @@ export default function AdminConfigPanel() {
         </div>
 
         {/* Features Grid */}
+        {activeCategory === 'core' && <section className="mb-5 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-5">
+          <h2 className="font-semibold text-white">Fitur AI Spin</h2>
+          <p className="mb-4 mt-1 text-sm text-gray-400">Kontrol kredit AI dan studio spin untuk semua pemilik rental. Keduanya saat ini dinonaktifkan.</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {([
+              ['ai_spin_credits_enabled', 'Kredit AI Spin', 'Izinkan pembelian dan penggunaan kredit untuk membuat model kendaraan.'],
+              ['spin360_studio_enabled', 'Studio Spin 360°', 'Izinkan pemilik membuka studio, membuat, dan menerbitkan model spin.'],
+            ] as const).map(([key, label, description]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/20 p-4">
+              <span><span className="block text-sm font-medium text-white">{label}</span><span className="mt-1 block text-xs text-gray-400">{description}</span><span className={`mt-2 inline-block text-xs ${runtimeSettings[key] ? 'text-emerald-400' : 'text-gray-500'}`}>{runtimeSettings[key] ? 'Aktif' : 'Nonaktif'}</span></span>
+              <input type="checkbox" className="h-5 w-5 accent-yellow-400" checked={runtimeSettings[key]} disabled={spinSaving} onChange={(event) => void setSpinFeature(key, event.target.checked)} aria-label={`Aktifkan ${label}`} />
+            </label>)}
+          </div>
+        </section>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentFeatures.map((feature, idx) => {
             const isEnabled = config[feature.key as keyof typeof config];

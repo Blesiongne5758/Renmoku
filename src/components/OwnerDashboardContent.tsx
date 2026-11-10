@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Bell, Plus, DollarSign, Calendar, Car, TrendingUp
-} from 'lucide-react';
+import { Plus, DollarSign, Calendar, Car, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { StatsCard, RevenueChart, FleetStatus, RecentBookings } from './dashboard';
 import Sidebar from './Sidebar';
@@ -13,12 +11,40 @@ import OwnerGPSPanel from './OwnerGPSPanel';
 import AdvancedAnalytics from './AdvancedAnalytics';
 import AddVehicleForm from './AddVehicleForm';
 import OwnerSpinStudio from './OwnerSpinStudio';
+import NotificationBell from './NotificationBell';
+import { defaultRuntimeSettings, getRuntimeSettings } from '../services/runtimeSettingsService';
+import { supabase } from '../lib/supabase';
 
 export default function OwnerDashboardContent() {
   const { currentUser, ownerSection, setOwnerSection } = useAppStore();
   const [bookingFilter, setBookingFilter] = useState('all');
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [submissionRefresh, setSubmissionRefresh] = useState(0);
+  const [spinStudioEnabled, setSpinStudioEnabled] = useState(defaultRuntimeSettings.spin360_studio_enabled);
+  const [overview, setOverview] = useState({ vehicles: 0, bookings: 0, income: 0, rating: 0 });
+  useEffect(() => { void getRuntimeSettings().then((settings) => setSpinStudioEnabled(settings.spin360_studio_enabled)); }, []);
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const { data: owner } = await supabase.from('owners').select('id,rating').eq('user_id', currentUser.id).maybeSingle();
+      if (!owner) return;
+      const [vehiclesResult, bookingsResult] = await Promise.all([
+        supabase.from('vehicles').select('id,status', { count: 'exact' }).eq('owner_id', owner.id),
+        supabase.from('bookings').select('status,total_price,created_at,vehicle:vehicles!inner(owner_id)').eq('vehicle.owner_id', owner.id),
+      ]);
+      if (cancelled) return;
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const ownerBookings = bookingsResult.data ?? [];
+      setOverview({
+        vehicles: vehiclesResult.count ?? 0,
+        bookings: ownerBookings.filter((item: any) => ['CONFIRMED', 'ACTIVE'].includes(item.status)).length,
+        income: ownerBookings.filter((item: any) => ['CONFIRMED', 'ACTIVE', 'COMPLETED'].includes(item.status) && new Date(item.created_at) >= monthStart).reduce((sum: number, item: any) => sum + Number(item.total_price || 0), 0),
+        rating: Number(owner.rating || 0),
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id]);
 
   const ownerName = currentUser?.name || 'John';
 
@@ -41,13 +67,13 @@ export default function OwnerDashboardContent() {
       {/* MAIN CONTENT */}
       <main className="flex-1 lg:ml-64 overflow-y-auto pb-20 lg:pb-0">
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 px-8 py-4">
-          <div className="flex items-center justify-between">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0a0a0a] px-5 py-4 sm:px-8">
+          <div className="flex min-h-14 items-center justify-between gap-4">
             <div>
               <motion.h1
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="font-serif text-3xl"
+                className="font-serif text-2xl sm:text-3xl"
               >
                 {ownerSection === 'overview' ? <>Selamat Pagi, <span className="text-yellow-400">{ownerName}</span> 👋</> : sectionTitle}
               </motion.h1>
@@ -55,56 +81,50 @@ export default function OwnerDashboardContent() {
                 {currentDate} • Armada Anda siap menghasilkan
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full text-[10px] flex items-center justify-center font-bold">
-                  3
-                </span>
-              </button>
-              {ownerSection === 'fleet' && <button onClick={() => setShowAddVehicle(true)} className="px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-semibold hover:scale-105 transition flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-3">
+              <NotificationBell />
+              {ownerSection === 'fleet' && <button aria-label="Tambah kendaraan" onClick={() => setShowAddVehicle(true)} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 px-3 py-2 text-sm font-semibold text-black transition hover:scale-105 sm:px-4 sm:text-base">
                 <Plus className="w-4 h-4" />
-                Tambah Kendaraan
+                <span className="hidden sm:inline">Tambah Kendaraan</span>
               </button>}
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="p-5 sm:p-8 space-y-6">
-          {ownerSection !== 'overview' && <div className="mb-2"><h2 className="text-2xl font-semibold">{sectionTitle}</h2><p className="mt-1 text-sm text-gray-500">Kelola dan pantau {sectionTitle.toLowerCase()} rental Anda.</p></div>}
+        <div className="space-y-6 p-5 pb-24 sm:p-8 lg:pb-8">
           {ownerSection === 'overview' && <>
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
               icon={DollarSign}
               label="Pendapatan Bulan Ini"
-              value="Rp 45.2M"
-              change="+12.5%"
+              value={`Rp ${overview.income.toLocaleString('id-ID')}`}
+              change="Bulan ini"
               trend="up"
               color="gold"
             />
             <StatsCard
               icon={Calendar}
               label="Booking Aktif"
-              value="24"
-              change="+8"
+              value={String(overview.bookings)}
+              change="Aktif"
               trend="up"
               color="purple"
             />
             <StatsCard
               icon={Car}
               label="Armada Aktif"
-              value="12/15"
-              change="3 maintenance"
+              value={String(overview.vehicles)}
+              change="Terdaftar"
               trend="neutral"
               color="blue"
             />
             <StatsCard
               icon={TrendingUp}
               label="Rating Rata-rata"
-              value="4.9"
-              change="120 reviews"
+              value={overview.rating.toFixed(1)}
+              change="Rating pemilik"
               trend="up"
               color="green"
             />
@@ -129,7 +149,7 @@ export default function OwnerDashboardContent() {
           {ownerSection === 'revenue' && <RevenueDashboard />}
           {ownerSection === 'analytics' && <AdvancedAnalytics />}
           {ownerSection === 'gps' && <OwnerGPSPanel />}
-          {ownerSection === 'spin360' && <OwnerSpinStudio />}
+          {ownerSection === 'spin360' && (spinStudioEnabled ? <OwnerSpinStudio /> : <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-[#141414] p-8 text-center"><h2 className="font-serif text-2xl">Studio Spin 360° sedang dinonaktifkan</h2><p className="mt-2 text-sm text-gray-400">Fitur ini sementara tidak tersedia. Silakan kembali ke armada.</p><button onClick={() => setOwnerSection('fleet')} className="mt-5 rounded-xl bg-yellow-500 px-4 py-2 font-medium text-black">Kembali ke Armada</button></div>)}
           {ownerSection === 'settings' && <OwnerSettingsPanel />}
         </div>
         {showAddVehicle && <AddVehicleForm onClose={() => setShowAddVehicle(false)} onSubmitted={() => setSubmissionRefresh((value) => value + 1)} />}

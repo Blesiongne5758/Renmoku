@@ -14,6 +14,7 @@ import VehicleUpload360 from '../components/VehicleUpload360';
 import Vehicle360Viewer from '../components/Vehicle360Viewer';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import NotificationBell from '../components/NotificationBell';
 
 type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
 type RenterBooking = { id: string; vehicleName: string; startDate: string; endDate: string; duration: number; totalPrice: number; dpAmount: number; dpPercentage: number; bookingStatus: string; pickupLocation: string; dropoffLocation: string };
@@ -127,6 +128,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            <NotificationBell />
             <div className="px-3 py-1.5 rounded-lg bg-gold-500/10 border border-gold-500/20">
               <span className="text-xs text-gold-300 font-medium capitalize">
                 {currentUser.role === 'individual' ? 'Penyewa Pribadi' :

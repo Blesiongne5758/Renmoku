@@ -17,6 +17,8 @@ Deno.serve(async (request) => {
   const token = authHeader.replace(/^Bearer\s+/i, '');
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return json({ error: 'Sesi pengguna tidak valid.' }, 401);
+  const { data: featureFlags } = await supabase.from('app_runtime_settings').select('spin360_studio_enabled,ai_spin_credits_enabled').eq('id', 1).maybeSingle();
+  if (!featureFlags?.spin360_studio_enabled || !featureFlags?.ai_spin_credits_enabled) return json({ error: 'Studio Spin 360° atau kredit AI sedang dinonaktifkan.' }, 403);
 
   let jobId: string | undefined;
   try {

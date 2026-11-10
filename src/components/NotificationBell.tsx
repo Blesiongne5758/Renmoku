@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useSocketContext } from './SocketProvider';
+import { useAppStore } from '../stores/useAppStore';
 
 // ============================================================================
 // REAL-TIME NOTIFICATION BELL
@@ -9,6 +10,7 @@ import { useSocketContext } from './SocketProvider';
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
+  const { setOwnerSection, setCurrentPage, currentUser } = useAppStore();
   const { 
     isConnected, 
     notifications, 
@@ -43,6 +45,8 @@ export default function NotificationBell() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Buka notifikasi"
+        aria-expanded={isOpen}
         className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 transition"
       >
         <Bell className="w-5 h-5" />
@@ -72,7 +76,7 @@ export default function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 top-12 w-96 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+            className="absolute right-0 top-12 z-[60] w-[min(24rem,calc(100vw-2rem))] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
@@ -108,8 +112,9 @@ export default function NotificationBell() {
                       transition={{ delay: idx * 0.05 }}
                       className="p-4 hover:bg-white/5 transition cursor-pointer"
                       onClick={() => {
-                        // Navigate to booking detail
                         clearNewBookings();
+                        setOwnerSection('bookings');
+                        setCurrentPage('dashboard');
                         setIsOpen(false);
                       }}
                     >
@@ -142,6 +147,8 @@ export default function NotificationBell() {
                       className="p-4 hover:bg-white/5 transition cursor-pointer"
                       onClick={() => {
                         clearBookingUpdates();
+                        setCurrentPage('dashboard');
+                        if (currentUser?.role === 'owner') setOwnerSection('bookings');
                         setIsOpen(false);
                       }}
                     >
@@ -176,6 +183,7 @@ export default function NotificationBell() {
                       className="p-4 hover:bg-white/5 transition cursor-pointer"
                       onClick={() => {
                         clearNotifications();
+                        setCurrentPage('dashboard');
                         setIsOpen(false);
                       }}
                     >
