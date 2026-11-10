@@ -30,6 +30,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           npx --yes supabase@latest functions deploy spin-catalog --project-ref "$SUPABASE_PROJECT_REF"
+          npx --yes supabase@latest functions deploy spin-manual-order --project-ref "$SUPABASE_PROJECT_REF"
           npx --yes supabase@latest functions deploy spin-checkout --project-ref "$SUPABASE_PROJECT_REF"
           npx --yes supabase@latest functions deploy spin-model-generate --project-ref "$SUPABASE_PROJECT_REF"
           npx --yes supabase@latest functions deploy spin-model-sync --project-ref "$SUPABASE_PROJECT_REF"

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Car, Calendar, DollarSign,
   CheckCircle, AlertTriangle, Settings, Bell, LogOut,
-  Menu, X, Crown, Navigation
+  Menu, X, Crown, Navigation, QrCode
 } from 'lucide-react';
 import { AdminSection, useAppStore } from '../../stores/useAppStore';
 
@@ -16,6 +16,7 @@ const adminMenu = [
   { icon: Calendar, label: 'Booking', section: 'bookings' as AdminSection },
   { icon: CheckCircle, label: 'Verifikasi', section: 'verification' as AdminSection },
   { icon: DollarSign, label: 'Pembayaran', section: 'payout' as AdminSection },
+  { icon: QrCode, label: 'QRIS AI Spin', section: 'ai-spin-payments' as AdminSection },
   { icon: AlertTriangle, label: 'Dispute', section: 'dispute' as AdminSection },
   { icon: Settings, label: 'Pengaturan', section: 'settings' as AdminSection },
   { icon: Navigation, label: 'GPS & Realtime', section: 'gps' as AdminSection },

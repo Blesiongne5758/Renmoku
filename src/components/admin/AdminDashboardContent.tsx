@@ -21,7 +21,7 @@ export default function AdminDashboardContent() {
   const adminName = currentUser?.name || 'Super Admin';
   const sectionTitle = {
     overview: 'Platform Overview', users: 'Pengguna', vehicles: 'Verifikasi Kendaraan', bookings: 'Booking Platform',
-    verification: 'Verifikasi Akun', payout: 'Pembayaran & Payout', dispute: 'Pusat Dispute', settings: 'Pengaturan Platform', gps: 'GPS & Realtime',
+    verification: 'Verifikasi Akun', payout: 'Pembayaran & Payout', dispute: 'Pusat Dispute', settings: 'Pengaturan Platform', gps: 'GPS & Realtime', 'ai-spin-payments': 'QRIS AI Spin',
   }[adminSection];
 
   return (

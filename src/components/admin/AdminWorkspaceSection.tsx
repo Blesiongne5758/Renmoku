@@ -5,8 +5,9 @@ import { supabase } from '../../lib/supabase';
 import AdminVehicleReviewPage from '../../pages/admin/AdminVehicleReviewPage';
 import AdminConfigPanel from './AdminConfigPanel';
 import AdminGPSSettings from '../../pages/admin/AdminGPSSettings';
+import AdminAiSpinPayments from './AdminAiSpinPayments';
 
-type Section = 'users' | 'vehicles' | 'bookings' | 'verification' | 'payout' | 'dispute' | 'settings' | 'gps';
+type Section = 'users' | 'vehicles' | 'bookings' | 'verification' | 'payout' | 'dispute' | 'settings' | 'gps' | 'ai-spin-payments';
 type UserRow = { id: string; email: string; full_name: string | null; role: string; status: string; created_at: string };
 type BookingRow = { id: string; status: string; start_date: string; end_date: string; total_price: number; created_at: string; vehicle: { brand: string; model: string } | null; renter: { full_name: string | null; email: string } | null };
 type PaymentRow = { id: string; booking_id: string; user_id: string; amount: number; method: string; type: string; status: string; created_at: string };
@@ -20,6 +21,7 @@ export default function AdminWorkspaceSection({ section }: { section: Section })
   if (section === 'verification') return <VerificationWorkspace />;
   if (section === 'settings') return <AdminConfigPanel />;
   if (section === 'gps') return <AdminGPSSettings />;
+  if (section === 'ai-spin-payments') return <AdminAiSpinPayments />;
   if (section === 'users') return <UsersWorkspace />;
   if (section === 'bookings') return <BookingsWorkspace />;
   if (section === 'payout') return <PaymentsWorkspace />;

@@ -1,5 +1,5 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { Clapperboard, Download, Film, Loader2, MoveHorizontal, Play, Rotate3D, Save, Upload, X, CreditCard, Sparkles } from 'lucide-react';
+import { Clapperboard, Download, Film, Loader2, MoveHorizontal, Play, Rotate3D, Save, Upload, X, QrCode, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { cloudinaryHelpers } from '../lib/cloudinary';
@@ -7,8 +7,7 @@ import { useAppStore } from '../stores/useAppStore';
 import VehicleModelViewer from './VehicleModelViewer';
 
 type SpinVehicle = { id: string; source: 'vehicle' | 'submission'; brand: string; model: string; year: number; images: string[] | null; photoPaths?: Record<string, string> | null; spin_frames: string[] | null; spin_video_url: string | null; submissionStatus?: string; spin_model_url?: string | null };
-type SpinCatalog = { packages: Array<{id:string;name:string;package_type:'monthly'|'top_up';generations:number;price_idr:number|null;provider_cost_idr:number|null;renmoku_share_idr:number|null;purchasable:boolean}>; wallet:{monthly_credits:number;topup_credits:number;package_id?:string;subscription_status:string;period_end?:string|null;payment_type?:string|null}; jobs:Array<{id:string;submission_id:string;status:string;provider_task_id:string|null;model_path:string|null;error_message:string|null;created_at:string}>; orders:Array<{id:string;package_id:string;status:string;subscription_creation_uncertain:boolean;midtrans_order_id:string;created_at:string}>; creditRateReady:boolean };
-declare global { interface Window { snap?: { pay:(token:string,callbacks:{onSuccess:()=>void;onPending:()=>void;onError:()=>void;onClose:()=>void})=>void } } }
+type SpinCatalog = { packages: Array<{id:string;name:string;package_type:'monthly'|'top_up';generations:number;price_idr:number|null;provider_cost_idr:number|null;renmoku_share_idr:number|null;purchasable:boolean}>; wallet:{monthly_credits:number;topup_credits:number;package_id?:string;subscription_status:string;period_end?:string|null;payment_type?:string|null}; jobs:Array<{id:string;submission_id:string;status:string;provider_task_id:string|null;model_path:string|null;error_message:string|null;created_at:string}>; orders:Array<{id:string;package_id:string;status:string;subscription_creation_uncertain:boolean;midtrans_order_id:string;payment_type:string|null;payment_proof_path:string|null;payment_review_note:string|null;amount_idr:number;created_at:string}>; creditRateReady:boolean;qrisImageUrl:string|null;qrisInstructions:string };
 type Frame = { key: string; src: string; file?: File; sourcePath?: string };
 const MAX_FRAMES = 36;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
@@ -30,6 +29,8 @@ export default function OwnerSpinStudio() {
   const [catalog, setCatalog] = useState<SpinCatalog | null>(null);
   const [catalogError, setCatalogError] = useState('');
   const [checkoutBusy, setCheckoutBusy] = useState('');
+  const [manualPackageId, setManualPackageId] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const dragX = useRef<number | null>(null);
   const videoCanvas = useRef<HTMLCanvasElement | null>(null);
   const frameUrls = useRef<string[]>([]);
@@ -257,22 +258,26 @@ export default function OwnerSpinStudio() {
     await loadCatalog();
   };
 
-  const checkout = async (packageId: string, paymentType: 'credit_card'|'gopay') => {
-    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY as string | undefined;
-    if (!clientKey) return toast.error('Atur VITE_MIDTRANS_CLIENT_KEY saat build sebelum menerima pembayaran.');
-    setCheckoutBusy(packageId);
-    const { data, error: checkoutError } = await supabase.functions.invoke('spin-checkout', { body: { packageId, paymentType } });
+  const submitManualPayment = async () => {
+    const pkg = catalog?.packages.find((item) => item.id === manualPackageId);
+    if (!currentUser?.id || !pkg || !proofFile) return toast.error('Pilih paket dan unggah bukti pembayaran.');
+    if (!catalog?.qrisImageUrl) return toast.error('QRIS belum disiapkan admin.');
+    if (!['image/jpeg','image/png','image/webp'].includes(proofFile.type) || proofFile.size > 5 * 1024 * 1024) return toast.error('Bukti harus JPG, PNG, atau WebP dengan ukuran maksimal 5 MB.');
+    setCheckoutBusy(pkg.id);
+    const orderUuid = crypto.randomUUID();
+    const extension = proofFile.type === 'image/jpeg' ? 'jpg' : proofFile.type === 'image/png' ? 'png' : 'webp';
+    const proofPath = `${currentUser.id}/${orderUuid}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from('ai-spin-payment-proofs').upload(proofPath, proofFile, { contentType: proofFile.type, upsert: false });
+    if (uploadError) { setCheckoutBusy(''); return toast.error('Bukti pembayaran gagal diunggah.'); }
+    const { data, error: orderError } = await supabase.functions.invoke('spin-manual-order', { body: { packageId: pkg.id, orderUuid, proofPath } });
     setCheckoutBusy('');
-    if (checkoutError || data?.error) { toast.error(data?.error ?? checkoutError?.message ?? 'Pembayaran belum dapat dibuka.'); return; }
-    const production = import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === 'true';
-    if (!window.snap) {
-      const script = document.createElement('script');
-      script.src = production ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js';
-      script.setAttribute('data-client-key', clientKey);
-      script.onload = () => window.snap?.pay(data.token, { onSuccess: () => { toast.success('Pembayaran diterima; kredit akan aktif setelah webhook terverifikasi.'); window.setTimeout(() => void loadCatalog(), 2500); }, onPending: () => toast('Pembayaran menunggu konfirmasi.'), onError: () => toast.error('Pembayaran gagal.'), onClose: () => toast('Jendela pembayaran ditutup.') });
-      script.onerror = () => toast.error('Layanan Midtrans tidak dapat dimuat.');
-      document.head.appendChild(script);
-    } else window.snap.pay(data.token, { onSuccess: () => { toast.success('Pembayaran diterima; kredit akan aktif setelah webhook terverifikasi.'); window.setTimeout(() => void loadCatalog(), 2500); }, onPending: () => toast('Pembayaran menunggu konfirmasi.'), onError: () => toast.error('Pembayaran gagal.'), onClose: () => toast('Jendela pembayaran ditutup.') });
+    if (orderError || data?.error) {
+      await supabase.storage.from('ai-spin-payment-proofs').remove([proofPath]);
+      return toast.error(data?.error ?? orderError?.message ?? 'Pesanan pembayaran gagal dibuat.');
+    }
+    setManualPackageId(''); setProofFile(null);
+    toast.success('Bukti pembayaran terkirim. Kredit aktif setelah admin memverifikasi pembayaran.');
+    await loadCatalog();
   };
 
   useEffect(() => {
@@ -294,20 +299,21 @@ export default function OwnerSpinStudio() {
   return <div className="space-y-5">
     <section className="rounded-2xl border border-white/10 bg-[#111315] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><h2 className="text-lg font-semibold text-white">Kredit AI Spin</h2><p className="mt-1 max-w-2xl text-sm text-gray-400">Pilih paket bulanan untuk tagihan otomatis lewat Kartu/GoPay, atau isi ulang kredit sesuai kebutuhan. Setiap model memakai kredit AI dan margin Renmoku dihitung 50% dari biaya AI.</p></div>
+        <div><h2 className="text-lg font-semibold text-white">Kredit AI Spin</h2><p className="mt-1 max-w-2xl text-sm text-gray-400">Pilih paket bulanan atau refill, bayar dengan QRIS, lalu unggah bukti. Admin akan memverifikasi pembayaran sebelum kredit ditambahkan. Perpanjangan paket bulanan dilakukan manual.</p></div>
         <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl border border-white/10 px-4 py-2"><strong className="block text-xl text-amber-200">{catalog?.wallet.monthly_credits ?? 0}</strong><span className="text-[11px] text-gray-400">kredit bulanan</span></div><div className="rounded-xl border border-white/10 px-4 py-2"><strong className="block text-xl text-amber-200">{catalog?.wallet.topup_credits ?? 0}</strong><span className="text-[11px] text-gray-400">kredit refill</span></div></div>
       </div>
-      {catalog?.wallet.subscription_status === 'active' && <p className="mt-3 text-xs text-emerald-300">Langganan aktif · perpanjangan {catalog.wallet.period_end ? new Date(catalog.wallet.period_end).toLocaleDateString('id-ID') : 'otomatis'} · {catalog.wallet.payment_type === 'gopay' ? 'GoPay' : 'Kartu'}</p>}
-      {catalog?.orders.length ? <div className="mt-4 space-y-2">{catalog.orders.filter((order)=>order.status==='pending'||order.status==='processing').map((order)=><div key={order.id} className={`rounded-lg border p-3 text-xs ${order.subscription_creation_uncertain?'border-amber-300/30 bg-amber-300/[.06] text-amber-100':'border-white/10 bg-white/[.02] text-gray-300'}`}><strong>{order.subscription_creation_uncertain?'Pembayaran perlu rekonsiliasi admin':'Pembayaran sedang diproses'}</strong><p className="mt-1">Referensi pesanan: {order.midtrans_order_id}. {order.subscription_creation_uncertain?'Hubungi admin dengan nomor ini dan jangan membuat langganan bulanan baru.':'Saldo aktif setelah pembayaran terverifikasi Midtrans.'}</p></div>)}</div>:null}
+      {catalog?.wallet.subscription_status === 'active' && <p className="mt-3 text-xs text-emerald-300">Paket bulanan aktif sampai {catalog.wallet.period_end ? new Date(catalog.wallet.period_end).toLocaleDateString('id-ID') : 'akhir periode'} · perpanjangan manual melalui QRIS.</p>}
+      {catalog?.orders.length ? <div className="mt-4 space-y-2">{catalog.orders.filter((order)=>order.payment_type==='manual_qris'&&(order.status==='pending'||order.status==='rejected')).map((order)=><div key={order.id} className={`rounded-lg border p-3 text-xs ${order.status==='rejected'?'border-red-300/30 bg-red-300/[.06] text-red-100':'border-amber-300/30 bg-amber-300/[.05] text-amber-100'}`}><strong>{order.status==='rejected'?'Pembayaran ditolak':'Bukti pembayaran menunggu verifikasi'}</strong><p className="mt-1">Referensi {order.midtrans_order_id} · Rp {Number(order.amount_idr).toLocaleString('id-ID')}. {order.payment_review_note||'Kredit akan ditambahkan setelah admin menyetujui bukti transfer.'}</p></div>)}</div>:null}
       {catalogError && <p className="mt-3 rounded-lg bg-amber-400/10 p-3 text-xs text-amber-200">{catalogError}</p>}
       {catalog && !catalog.creditRateReady && <p className="mt-3 rounded-lg bg-amber-400/10 p-3 text-xs text-amber-200">Harga belum tersedia. Admin perlu mengatur secret MESHY_CREDIT_COST_IDR berdasarkan biaya aktual kredit Meshy.</p>}
+      {catalog && !catalog.qrisImageUrl && <p className="mt-3 rounded-lg bg-amber-400/10 p-3 text-xs text-amber-200">QRIS belum tersedia. Admin perlu mengunggah QRIS aktif melalui menu QRIS AI Spin.</p>}
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{catalog?.packages.map((pkg) => <article key={pkg.id} className="rounded-xl border border-white/10 bg-white/[.025] p-4">
         <div className="flex items-start justify-between gap-2"><div><h3 className="font-medium text-white">{pkg.name}</h3><p className="mt-1 text-xs text-gray-400">{pkg.generations} model 3D {pkg.package_type==='monthly'?'per bulan':'sekali isi'}</p></div><span className="rounded-full bg-amber-300/10 px-2 py-1 text-[10px] uppercase tracking-wide text-amber-200">{pkg.package_type==='monthly'?'bulanan':'refill'}</span></div>
         <p className="mt-3 text-lg font-semibold text-amber-200">{pkg.price_idr ? `Rp ${pkg.price_idr.toLocaleString('id-ID')}` : 'Harga belum diatur'}</p>
         {pkg.price_idr && <p className="mt-1 text-[11px] text-gray-500">Termasuk biaya AI Rp {pkg.provider_cost_idr?.toLocaleString('id-ID')} + bagian Renmoku Rp {pkg.renmoku_share_idr?.toLocaleString('id-ID')}</p>}
-        {!pkg.purchasable&&pkg.price_idr!==null&&<p className="mt-2 text-[11px] text-amber-200">Di bawah batas transaksi Midtrans Rp 10.000.</p>}
-        <div className="mt-3 grid grid-cols-2 gap-2">{(['credit_card','gopay'] as const).map((method) => <button key={method} disabled={!pkg.purchasable || Boolean(checkoutBusy) || (pkg.package_type==='monthly'&&Boolean(catalog?.wallet.subscription_status==='active'||catalog?.wallet.subscription_status==='past_due'))} onClick={() => void checkout(pkg.id,method)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-2 py-2 text-xs text-gray-200 hover:border-amber-300/40 disabled:opacity-40">{checkoutBusy===pkg.id?<Loader2 className="h-3.5 w-3.5 animate-spin"/>:<CreditCard className="h-3.5 w-3.5 text-amber-300"/>}{method==='gopay'?'GoPay':'Kartu'}</button>)}</div>
+        <button disabled={Boolean(checkoutBusy)||!catalog?.qrisImageUrl||!pkg.price_idr} onClick={() => { setManualPackageId(pkg.id); setProofFile(null); }} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300/30 px-3 py-2.5 text-sm text-amber-100 hover:bg-amber-300/10 disabled:opacity-40"><QrCode className="h-4 w-4"/>Bayar via QRIS</button>
       </article>)}</div>
+      {manualPackageId && catalog?.qrisImageUrl && <div className="mt-5 rounded-xl border border-amber-300/20 bg-black/20 p-4 sm:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-medium text-white">Pembayaran QRIS · {catalog.packages.find((pkg)=>pkg.id===manualPackageId)?.name}</h3><p className="mt-1 text-sm text-amber-100">Total Rp {catalog.packages.find((pkg)=>pkg.id===manualPackageId)?.price_idr?.toLocaleString('id-ID')}</p></div><button onClick={()=>setManualPackageId('')} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300">Tutup</button></div><div className="mt-4 grid gap-5 md:grid-cols-[220px_1fr] md:items-center"><img src={catalog.qrisImageUrl} alt="QRIS pembayaran AI Spin Renmoku" className="mx-auto max-h-56 w-full max-w-56 rounded-lg bg-white object-contain p-2"/><div><p className="whitespace-pre-wrap text-sm leading-6 text-gray-300">{catalog.qrisInstructions}</p><label className="mt-4 block text-sm font-medium text-gray-200">Bukti pembayaran <span className="font-normal text-gray-500">(JPG, PNG, WebP · maksimal 5 MB)</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event)=>setProofFile(event.target.files?.[0]??null)} className="mt-2 block w-full rounded-lg border border-white/10 bg-white/[.03] p-2 text-xs text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-stone-900"/></label><button disabled={!proofFile||Boolean(checkoutBusy)} onClick={()=>void submitManualPayment()} className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-900 disabled:opacity-45">{checkoutBusy?<><Loader2 className="h-4 w-4 animate-spin"/>Mengirim bukti…</>:<><Upload className="h-4 w-4"/>Kirim bukti pembayaran</>}</button></div></div></div>}
     </section>
     <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#111315]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6"><div><h2 className="flex items-center gap-2 text-lg font-semibold"><Rotate3D className="h-5 w-5 text-amber-300"/>Studio Spin 360°</h2><p className="mt-1 text-sm text-gray-400">Susun foto mengelilingi kendaraan, pratinjau showroom, dan ekspor video spin.</p></div>{selected && <label className="text-sm text-gray-400">Kendaraan<select disabled={generating || saving} value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="ml-2 max-w-[240px] rounded-lg border border-white/10 bg-[#1a1c1e] px-3 py-2 text-white disabled:opacity-50">{vehicles.map((vehicle) => <option key={`${vehicle.source}-${vehicle.id}`} value={vehicle.id}>{vehicle.brand} {vehicle.model} ({vehicle.year}){vehicle.source === 'submission' ? ' · Pengajuan' : ''}</option>)}</select></label>}</header>
