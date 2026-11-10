@@ -15,6 +15,7 @@ import Vehicle360Viewer from '../components/Vehicle360Viewer';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
+import BookingChat from '../components/BookingChat';
 
 type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
 type RenterBooking = { id: string; vehicleName: string; startDate: string; endDate: string; duration: number; totalPrice: number; dpAmount: number; dpPercentage: number; bookingStatus: string; pickupLocation: string; dropoffLocation: string };
@@ -669,11 +670,15 @@ export default function DashboardPage() {
                       booking.bookingStatus === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' :
                       booking.bookingStatus === 'confirmed' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' :
                       booking.bookingStatus === 'completed' ? 'bg-gray-500/10 text-gray-300 border border-gray-500/20' :
+                      booking.bookingStatus === 'unavailable' ? 'bg-amber-500/10 text-amber-200 border border-amber-500/20' :
                       'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20'
                     }`}>
                       {booking.bookingStatus === 'active' ? 'Aktif' :
                        booking.bookingStatus === 'confirmed' ? 'Dikonfirmasi' :
-                       booking.bookingStatus === 'completed' ? 'Selesai' : 'Pending'}
+                       booking.bookingStatus === 'completed' ? 'Selesai' :
+                       booking.bookingStatus === 'unavailable' ? 'Kendaraan tidak tersedia' :
+                       booking.bookingStatus === 'pending_payment_review' ? 'Validasi pembayaran' :
+                       booking.bookingStatus === 'cancelled' ? 'Dibatalkan' : 'Menunggu pemilik'}
                     </span>
                   </div>
                 </div>
@@ -683,6 +688,12 @@ export default function DashboardPage() {
                     <span className="text-xs text-gray-400">Driver: {booking.driverName}</span>
                   </div>
                 )}
+                {isRenter && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+                  <BookingChat bookingId={booking.id} status={booking.bookingStatus.toUpperCase()}/>
+                  {booking.bookingStatus === 'unavailable' && <div className="flex flex-wrap items-center gap-3"><p className="text-xs text-amber-200">Kendaraan tidak tersedia. Biaya booking Anda tetap dapat dipakai untuk memilih kendaraan lain tanpa bayar lagi.</p><button onClick={() => setCurrentPage('fleet')} className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-semibold text-black">Pilih kendaraan lain</button></div>}
+                  {booking.bookingStatus === 'pending_payment_review' && <p className="text-xs text-yellow-200">Menunggu validasi bukti pembayaran biaya booking oleh admin.</p>}
+                  {booking.bookingStatus === 'pending' && <p className="text-xs text-yellow-200">Pembayaran tervalidasi; menunggu konfirmasi ketersediaan dari pemilik.</p>}
+                </div>}
               </motion.div>
             ))}
           </motion.div>

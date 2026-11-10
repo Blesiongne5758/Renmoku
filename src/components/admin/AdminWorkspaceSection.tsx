@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Check, CircleDollarSign, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
+import BookingFeeAdmin from './BookingFeeAdmin';
 import AdminVehicleReviewPage from '../../pages/admin/AdminVehicleReviewPage';
 import AdminConfigPanel from './AdminConfigPanel';
 import AdminGPSSettings from '../../pages/admin/AdminGPSSettings';
@@ -72,9 +73,9 @@ function BookingsWorkspace() {
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
-  return <section className={`${panel} p-5`}><header className="mb-5 flex items-center justify-between"><div><h2 className="text-xl font-semibold">Booking platform</h2><p className="mt-1 text-sm text-gray-500">Semua pemesanan dan statusnya.</p></div><button onClick={() => void load()} className="rounded-lg border border-white/10 p-2" aria-label="Muat ulang"><RefreshCw className="h-4 w-4"/></button></header>
+  return <div className="space-y-5"><BookingFeeAdmin/><section className={`${panel} p-5`}><header className="mb-5 flex items-center justify-between"><div><h2 className="text-xl font-semibold">Booking platform</h2><p className="mt-1 text-sm text-gray-500">Semua pemesanan dan statusnya.</p></div><button onClick={() => void load()} className="rounded-lg border border-white/10 p-2" aria-label="Muat ulang"><RefreshCw className="h-4 w-4"/></button></header>
     {error && <p className="mb-4 rounded-lg bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}{loading ? <LoadingRows/> : rows.length === 0 ? <EmptyState text="Belum ada booking."/> : <div className="space-y-2">{rows.map((booking) => <article key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 p-4"><div><p className="font-medium">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : 'Kendaraan'} · #{booking.id.slice(0, 8)}</p><p className="mt-1 text-xs text-gray-500">{booking.renter?.full_name || booking.renter?.email || 'Penyewa'} · {booking.start_date} – {booking.end_date}</p></div><div className="flex items-center gap-3"><span className="font-medium text-yellow-200">{formatMoney(booking.total_price)}</span><StatusBadge value={booking.status}/></div></article>)}</div>}
-  </section>;
+  </section></div>;
 }
 
 function PaymentsWorkspace() {

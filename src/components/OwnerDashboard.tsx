@@ -10,6 +10,7 @@ import { useAppStore } from '../stores/useAppStore';
 import { formatCurrency } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import BookingChat from './BookingChat';
 
 type OwnerTab = 'fleet' | 'bookings' | 'inspection' | 'revenue';
 
@@ -293,12 +294,14 @@ export function BookingManagement({ filter, setFilter }: { filter: string; setFi
     if (queryError) setError('Data pemesanan gagal dimuat.'); else setBookings((data ?? []).map((item: any) => ({ ...item, renter: Array.isArray(item.renter) ? item.renter[0] : item.renter, vehicle: Array.isArray(item.vehicle) ? item.vehicle[0] : item.vehicle })));
   };
   useEffect(() => { void loadBookings(); }, [currentUser?.id]);
-  const updateStatus = async (bookingId: string, status: 'CONFIRMED' | 'CANCELLED') => {
+  const updateStatus = async (bookingId: string, status: 'CONFIRMED' | 'UNAVAILABLE' | 'CANCELLED') => {
     setBusyId(bookingId);
-    const { error: updateError } = await supabase.from('bookings').update({ status, updated_at: new Date().toISOString() }).eq('id', bookingId).eq('status', 'PENDING');
+    const result = status === 'CONFIRMED' || status === 'UNAVAILABLE'
+      ? await supabase.rpc('resolve_booking_availability', { p_booking_id: bookingId, p_available: status === 'CONFIRMED' })
+      : await supabase.from('bookings').update({ status, updated_at: new Date().toISOString() }).eq('id', bookingId).eq('status', 'PENDING');
     setBusyId('');
-    if (updateError) return toast.error('Status pemesanan gagal diperbarui.');
-    toast.success(status === 'CONFIRMED' ? 'Pemesanan diterima.' : 'Pemesanan ditolak.');
+    if (result.error) return toast.error('Status gagal diperbarui. Pastikan bukti bayar sudah divalidasi admin dan migrasi booking fee telah diterapkan.');
+    toast.success(status === 'CONFIRMED' ? 'Ketersediaan dikonfirmasi. Biaya booking digunakan.' : status === 'UNAVAILABLE' ? 'Kendaraan ditandai tidak tersedia. Penyewa dapat memilih kendaraan lain tanpa membayar lagi.' : 'Pemesanan ditolak.');
     await loadBookings();
   };
   const filters = [
@@ -397,6 +400,9 @@ export function BookingManagement({ filter, setFilter }: { filter: string; setFi
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Terima
                       </motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} disabled={busyId === booking.id} onClick={() => void updateStatus(booking.id, 'UNAVAILABLE')} className="flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 disabled:opacity-50">
+                        Kendaraan tidak tersedia
+                      </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -416,6 +422,7 @@ export function BookingManagement({ filter, setFilter }: { filter: string; setFi
                     Lihat Detail
                   </motion.button>
                 </div>
+                <div className="mt-3"><BookingChat bookingId={booking.id} status={booking.status}/></div>
                 {detailsId === booking.id && <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-gray-300"><p>Lokasi jemput: {booking.trip_origin || '—'}</p><p>Tujuan: {booking.trip_destination || '—'}</p><p className="mt-1 text-xs text-gray-500">Booking dibuat {new Date(booking.created_at).toLocaleString('id-ID')}</p></div>}
               </div>
             </div>

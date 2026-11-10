@@ -10,9 +10,11 @@ import { useBookingStore } from '../store/useBookingStore';
 import { formatCurrency } from '../data/mockData';
 import { getTermsByUserType } from '../data/termsAndConditions';
 import TermsAndConditions from './TermsAndConditions';
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export default function BookingFlow() {
-  const { selectedVehicle, setCurrentPage } = useAppStore();
+  const { selectedVehicle, setCurrentPage, currentUser } = useAppStore();
   const {
     currentStep,
     setCurrentStep,
@@ -41,8 +43,25 @@ export default function BookingFlow() {
     sim: false,
     kk: false,
   });
-  const [paymentMethod, setPaymentMethod] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [bookingFeeProof, setBookingFeeProof] = useState<File | null>(null);
+  const [bookingFeeQris, setBookingFeeQris] = useState('');
+  const [reusableFeeId, setReusableFeeId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([
+      supabase.from('booking_fee_settings').select('qris_image_path').eq('id', true).maybeSingle(),
+      currentUser?.id ? supabase.from('booking_fee_transactions').select('id').eq('renter_id', currentUser.id).eq('status', 'PAID_AVAILABLE').is('current_booking_id', null).order('created_at', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    ]).then(([setting, reusable]) => {
+      if (!alive) return;
+      const path = setting.data?.qris_image_path;
+      if (path) setBookingFeeQris(supabase.storage.from('booking-fee-qris').getPublicUrl(path).data.publicUrl);
+      if (reusable.data?.id) setReusableFeeId(reusable.data.id);
+    });
+    return () => { alive = false; };
+  }, [currentUser?.id]);
 
   // Initialize vehicle and calculate pricing when component mounts
   useEffect(() => {
@@ -93,11 +112,36 @@ export default function BookingFlow() {
     ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
     : 1;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     } else {
-      setCurrentPage('success');
+      if (!currentUser?.id) { toast.error('Masuk ke akun penyewa terlebih dahulu.'); setCurrentPage('auth'); return; }
+      if (!agreeTerms) { toast.error('Setujui syarat dan ketentuan sebelum melanjutkan.'); return; }
+      if (!guaranteeType || !durationType || !startDate || !endDate || !tripPlan.origin.trim() || !tripPlan.destination.trim()) { toast.error('Lengkapi durasi, tanggal, perjalanan, dan jaminan.'); return; }
+      if (!reusableFeeId && !bookingFeeProof) { toast.error('Unggah bukti pembayaran biaya booking Rp25.000.'); return; }
+      setSubmitting(true);
+      let proofPath: string | null = null;
+      if (!reusableFeeId && bookingFeeProof) {
+        const ext = bookingFeeProof.type === 'image/png' ? 'png' : bookingFeeProof.type === 'image/webp' ? 'webp' : 'jpg';
+        proofPath = `${currentUser.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('booking-fee-proofs').upload(proofPath, bookingFeeProof, { contentType: bookingFeeProof.type });
+        if (uploadError) { setSubmitting(false); toast.error('Bukti pembayaran gagal diunggah.'); return; }
+      }
+      const payload = {
+        vehicle_id: selectedVehicle.id, start_date: startDate, end_date: endDate, duration_type: durationType,
+        with_driver: withDriver, total_price: totalPrice, dp_amount: dpAmount,
+        trip_origin: tripPlan.origin, trip_destination: tripPlan.destination, trip_purpose: tripPlan.purpose || 'Perjalanan pribadi',
+        guarantee_type: guaranteeType, guarantee_doc_url: null,
+      };
+      const { error: submitError } = await supabase.rpc('submit_booking_with_fee', {
+        p_booking: payload, p_proof_path: proofPath, p_reuse_transaction_id: reusableFeeId || null,
+      });
+      setSubmitting(false);
+      if (submitError) { toast.error(submitError.message === 'vehicle_unavailable' ? 'Kendaraan tidak lagi tersedia. Pilih kendaraan lain.' : 'Pemesanan gagal dikirim. Pastikan database sudah diperbarui dan kendaraan terdaftar.'); return; }
+      toast.success(reusableFeeId ? 'Booking pengganti terkirim menggunakan biaya yang sudah dibayar.' : 'Booking dan bukti pembayaran terkirim untuk validasi admin.');
+      reset();
+      setCurrentPage('dashboard');
     }
   };
 
@@ -505,36 +549,15 @@ export default function BookingFlow() {
                       </div>
                     </div>
 
-                    {/* Payment Method */}
+                    {/* Fixed booking fee, paid via admin QRIS */}
                     <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">
-                        Pembayaran DP (50%): {formatCurrency(dpAmount)}
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {[
-                          { id: 'transfer', label: 'Transfer Bank', icon: '🏦' },
-                          { id: 'cc', label: 'Credit Card', icon: '💳' },
-                          { id: 'ewallet', label: 'E-Wallet', icon: '📱' },
-                        ].map((opt) => (
-                          <motion.button
-                            key={opt.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setPaymentMethod(opt.id)}
-                            className={`p-4 rounded-xl text-center transition-all ${
-                              paymentMethod === opt.id
-                                ? 'neu-gold'
-                                : 'neu-soft'
-                            }`}
-                          >
-                            <span className="text-2xl">{opt.icon}</span>
-                            <p className={`text-sm font-medium mt-2 ${
-                              paymentMethod === opt.id ? 'text-gold-300' : 'text-gray-300'
-                            }`}>
-                              {opt.label}
-                            </p>
-                          </motion.button>
-                        ))}
+                      <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-gold-200">Biaya booking satu transaksi · Rp25.000</p><p className="mt-1 max-w-xl text-xs leading-5 text-gray-400">Bayar melalui QRIS admin dan unggah bukti. Biaya tidak dapat dikembalikan. Jika kendaraan tidak tersedia, biaya yang tervalidasi dapat dipakai kembali untuk memilih kendaraan lain tanpa biaya tambahan sampai pemilik mengonfirmasi ketersediaan.</p></div><span className="rounded-full bg-yellow-400/10 px-3 py-1 text-xs text-yellow-200">QRIS statis</span></div>
+                        {reusableFeeId ? <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3"><input type="checkbox" checked={!bookingFeeProof} onChange={(event) => { if (event.target.checked) setBookingFeeProof(null); else setReusableFeeId(''); }} className="mt-1 accent-yellow-400"/><span className="text-sm text-emerald-200">Gunakan biaya booking yang sudah dibayar untuk kendaraan pengganti. Tidak perlu membayar ulang.</span></label> : <>
+                          {bookingFeeQris ? <img src={bookingFeeQris} alt="QRIS pembayaran biaya booking" className="mx-auto my-4 max-h-64 rounded-xl bg-white p-2"/> : <p className="my-4 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-200">QRIS booking belum diatur oleh admin. Pembayaran belum dapat dilanjutkan.</p>}
+                          <label className="block text-sm text-gray-300">Unggah bukti pembayaran (JPG, PNG, WEBP · maks. 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setBookingFeeProof(event.target.files?.[0] ?? null)} className="mt-2 block w-full text-xs text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-gray-200"/></label>
+                          {bookingFeeProof && <p className="mt-2 text-xs text-emerald-300">Bukti siap diunggah: {bookingFeeProof.name}</p>}
+                        </>}
                       </div>
                     </div>
                   </div>
@@ -586,7 +609,7 @@ export default function BookingFlow() {
                 onClick={handleNext}
                 className="flex-1 btn-luxury py-3 flex items-center justify-center gap-2"
               >
-                {currentStep === 5 ? 'Konfirmasi Booking' : 'Lanjut'}
+                {submitting ? 'Mengirim…' : currentStep === 5 ? 'Kirim Booking' : 'Lanjut'}
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </div>

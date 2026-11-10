@@ -13,11 +13,33 @@ export default function FleetPage() {
   const { setCurrentPage, setSelectedVehicle, setShowBookingModal } = useAppStore();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [publishedModels, setPublishedModels] = useState<PublishedModel[]>([]);
+  const [rentalVehicles, setRentalVehicles] = useState<Vehicle[]>([]);
+  const [fleetLoading, setFleetLoading] = useState(true);
+  const [fleetError, setFleetError] = useState('');
 
   useEffect(() => {
     let active = true;
-    void supabase.from('published_spin_vehicles').select('id,brand,model,year,transmission,capacity,fuel_type,price_daily,location,spin_model_url').order('created_at',{ascending:false})
-      .then(({data,error}) => { if(active && !error) setPublishedModels((data ?? []) as PublishedModel[]); });
+    void Promise.all([
+      supabase.from('published_spin_vehicles').select('id,brand,model,year,transmission,capacity,fuel_type,price_daily,location,spin_model_url').order('created_at',{ascending:false}),
+      supabase.from('vehicles').select('id,owner_id,brand,model,year,transmission,capacity,fuel_type,features,price_daily,price_weekly,price_monthly,status,location,images,model_3d_url,rating,total_reviews').eq('status','AVAILABLE').order('created_at',{ascending:false}),
+    ]).then(([models, fleet]) => {
+      if (!active) return;
+      if (!models.error) setPublishedModels((models.data ?? []) as PublishedModel[]);
+      if (fleet.error) setFleetError('Armada belum dapat dimuat. Silakan muat ulang halaman.');
+      else setRentalVehicles((fleet.data ?? []).map((row: any) => {
+        const fuel = String(row.fuel_type ?? 'bensin').toLowerCase();
+        return {
+          id: row.id, name: `${row.brand} ${row.model}`, brand: row.brand, type: 'luxury', year: row.year,
+          transmission: String(row.transmission).toLowerCase() === 'manual' ? 'manual' : 'automatic',
+          seats: row.capacity, fuel: ['bensin','diesel','hybrid','electric'].includes(fuel) ? fuel : 'bensin',
+          pricePerDay: Number(row.price_daily), pricePerWeek: Number(row.price_weekly), pricePerMonth: Number(row.price_monthly),
+          image: row.images?.[0] || vehicles[0]?.image || '', images: row.images ?? [], features: row.features ?? [],
+          available: row.status === 'AVAILABLE', ownerId: row.owner_id, location: row.location,
+          rating: Number(row.rating ?? 0), reviews: Number(row.total_reviews ?? 0), model3D: row.model_3d_url ?? undefined,
+        } as Vehicle;
+      }));
+      setFleetLoading(false);
+    });
     return () => { active = false; };
   }, []);
 
@@ -65,7 +87,7 @@ export default function FleetPage() {
         {/* View controls */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-gray-400">
-            Menampilkan <span className="text-gold-400 font-medium">{vehicles.length}</span> kendaraan
+            Menampilkan <span className="text-gold-400 font-medium">{rentalVehicles.length}</span> kendaraan
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -84,8 +106,11 @@ export default function FleetPage() {
         </div>
 
         {/* Vehicle Grid */}
+        {fleetError && <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">{fleetError}</div>}
+        {!fleetLoading && !fleetError && rentalVehicles.length === 0 && <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center text-gray-400">Belum ada kendaraan tersedia. Coba kembali nanti.</div>}
+        {fleetLoading && <div className="rounded-2xl border border-white/10 p-8 text-center text-gray-400">Memuat armada…</div>}
         <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-          {vehicles.map((vehicle, index) => (
+          {rentalVehicles.map((vehicle, index) => (
             <VehicleCard
               key={vehicle.id}
               vehicle={vehicle}
