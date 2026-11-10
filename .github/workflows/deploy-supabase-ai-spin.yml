@@ -29,12 +29,13 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          npx --yes supabase@latest functions deploy spin-catalog --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-manual-order --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-checkout --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-model-generate --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-model-sync --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-model-publish --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-payment-webhook --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-renewal-webhook --project-ref "$SUPABASE_PROJECT_REF"
-          npx --yes supabase@latest functions deploy spin-payment-reconcile --project-ref "$SUPABASE_PROJECT_REF"
+          set -euo pipefail
+          npx --yes supabase@3 functions deploy spin-catalog --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-manual-order --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-checkout --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-model-generate --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-model-sync --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-model-publish --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-payment-webhook --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-renewal-webhook --remote="$SUPABASE_PROJECT_REF" --yes
+          npx --yes supabase@3 functions deploy spin-payment-reconcile --remote="$SUPABASE_PROJECT_REF" --yes
