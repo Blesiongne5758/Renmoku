@@ -11,6 +11,7 @@ import { formatCurrency } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import BookingChat from './BookingChat';
+import BookingContractViewer from './BookingContractViewer';
 
 type OwnerTab = 'fleet' | 'bookings' | 'inspection' | 'revenue';
 
@@ -422,7 +423,7 @@ export function BookingManagement({ filter, setFilter }: { filter: string; setFi
                     Lihat Detail
                   </motion.button>
                 </div>
-                <div className="mt-3"><BookingChat bookingId={booking.id} status={booking.status}/></div>
+                <div className="mt-3 flex flex-wrap gap-2"><BookingChat bookingId={booking.id} status={booking.status}/><BookingContractViewer bookingId={booking.id}/></div>
                 {detailsId === booking.id && <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-gray-300"><p>Lokasi jemput: {booking.trip_origin || '—'}</p><p>Tujuan: {booking.trip_destination || '—'}</p><p className="mt-1 text-xs text-gray-500">Booking dibuat {new Date(booking.created_at).toLocaleString('id-ID')}</p></div>}
               </div>
             </div>

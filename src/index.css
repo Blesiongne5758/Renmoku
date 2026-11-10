@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* Keep the signature workspace landscape even on phones that disallow orientation locking. */
+@media screen and (orientation: portrait) and (max-width: 767px) {
+  .digital-signature-screen {
+    inset: auto !important;
+    left: 100vw !important;
+    top: 0 !important;
+    width: 100dvh !important;
+    height: 100vw !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    transform: rotate(90deg);
+    transform-origin: top left;
+  }
+}
+
 /* ============================================================================
    HNWI LUXURY DESIGN SYSTEM
    Target: High-Net-Worth Individuals

@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
 import BookingChat from '../components/BookingChat';
+import BookingContractViewer from '../components/BookingContractViewer';
 
 type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
 type RenterBooking = { id: string; vehicleName: string; startDate: string; endDate: string; duration: number; totalPrice: number; dpAmount: number; dpPercentage: number; bookingStatus: string; pickupLocation: string; dropoffLocation: string };
@@ -690,6 +691,7 @@ export default function DashboardPage() {
                 )}
                 {isRenter && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
                   <BookingChat bookingId={booking.id} status={booking.bookingStatus.toUpperCase()}/>
+                  <BookingContractViewer bookingId={booking.id}/>
                   {booking.bookingStatus === 'unavailable' && <div className="flex flex-wrap items-center gap-3"><p className="text-xs text-amber-200">Kendaraan tidak tersedia. Biaya booking Anda tetap dapat dipakai untuk memilih kendaraan lain tanpa bayar lagi.</p><button onClick={() => setCurrentPage('fleet')} className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-semibold text-black">Pilih kendaraan lain</button></div>}
                   {booking.bookingStatus === 'pending_payment_review' && <p className="text-xs text-yellow-200">Menunggu validasi bukti pembayaran biaya booking oleh admin.</p>}
                   {booking.bookingStatus === 'pending' && <p className="text-xs text-yellow-200">Pembayaran tervalidasi; menunggu konfirmasi ketersediaan dari pemilik.</p>}

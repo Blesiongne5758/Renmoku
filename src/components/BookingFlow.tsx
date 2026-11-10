@@ -1,20 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { 
-  Car, Calendar, Users, MapPin, CreditCard, FileText, 
-  CheckCircle, ArrowRight, ArrowLeft, Upload, Shield,
-  AlertCircle, Clock, PenTool
-} from 'lucide-react';
+import { Car, Calendar, Users, MapPin, CreditCard, CheckCircle, ArrowRight, ArrowLeft, AlertCircle, Shield, Clock } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { useBookingStore } from '../store/useBookingStore';
 import { formatCurrency } from '../data/mockData';
-import { getTermsByUserType } from '../data/termsAndConditions';
+import { getTermsByUserType, individualTerms } from '../data/termsAndConditions';
 import TermsAndConditions from './TermsAndConditions';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import RenterIdentityForm, { RenterIdentity } from './RenterIdentityForm';
+import DigitalSignaturePad from './DigitalSignaturePad';
 
 export default function BookingFlow() {
-  const { selectedVehicle, setCurrentPage, currentUser } = useAppStore();
+  const { selectedVehicle, setCurrentPage, currentUser, setCurrentUser } = useAppStore();
   const {
     currentStep,
     setCurrentStep,
@@ -24,8 +22,6 @@ export default function BookingFlow() {
     startDate,
     endDate,
     setDates,
-    renterInfo,
-    setRenterInfo,
     tripPlan,
     setTripPlan,
     guaranteeType,
@@ -37,12 +33,9 @@ export default function BookingFlow() {
     reset,
   } = useBookingStore();
 
-  // Local state for UI-only concerns
-  const [uploadStatus, setUploadStatus] = useState({
-    ktp: false,
-    sim: false,
-    kk: false,
-  });
+  const [identity, setIdentity] = useState<RenterIdentity>({ fullName: '', email: '', phone: '', ktpNumber: '', simNumber: '', address: '', latitude: null, longitude: null, files: {}, paths: {} });
+  const [signatureDataUrl, setSignatureDataUrl] = useState('');
+  const [signedContractSnapshot, setSignedContractSnapshot] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [bookingFeeProof, setBookingFeeProof] = useState<File | null>(null);
   const [bookingFeeQris, setBookingFeeQris] = useState('');
@@ -112,6 +105,15 @@ export default function BookingFlow() {
     ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
     : 1;
 
+  const createContractSnapshot = () => JSON.stringify({
+    title: 'Perjanjian Sewa Menyewa Kendaraan Renmoku', version: individualTerms.version,
+    renter: { name: identity.fullName.trim(), email: identity.email, phone: identity.phone.trim(), ktp: identity.ktpNumber, simA: identity.simNumber, address: identity.address.trim(), latitude: identity.latitude, longitude: identity.longitude },
+    vehicle: { id: selectedVehicle.id, name: selectedVehicle.name }, rental: { startDate, endDate, durationType, withDriver, totalPrice, dpAmount },
+    trip: tripPlan, guaranteeType, bookingFee: 25000, termsAccepted: agreeTerms, acceptedTerms: individualTerms.sections,
+    termsText: 'Penyewa menyatakan data benar, mematuhi masa dan tujuan sewa, menjaga kendaraan, bertanggung jawab atas pelanggaran dan kerusakan sesuai perjanjian, serta mengembalikan kendaraan sesuai waktu dan kondisi yang disepakati. Perubahan/perpanjangan harus disetujui pemilik. Biaya booking Rp25.000 tidak dapat dikembalikan; jika kendaraan pilihan tidak tersedia biaya yang telah divalidasi digunakan untuk memilih kendaraan lain sampai pemilik mengonfirmasi ketersediaan.',
+  });
+  const invalidateSignature = () => { setSignatureDataUrl(''); setSignedContractSnapshot(''); };
+
   const handleNext = async () => {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
@@ -119,26 +121,71 @@ export default function BookingFlow() {
       if (!currentUser?.id) { toast.error('Masuk ke akun penyewa terlebih dahulu.'); setCurrentPage('auth'); return; }
       if (!agreeTerms) { toast.error('Setujui syarat dan ketentuan sebelum melanjutkan.'); return; }
       if (!guaranteeType || !durationType || !startDate || !endDate || !tripPlan.origin.trim() || !tripPlan.destination.trim()) { toast.error('Lengkapi durasi, tanggal, perjalanan, dan jaminan.'); return; }
+      if (!identity.fullName.trim() || !identity.email || !identity.phone.trim() || !/^\d{16}$/.test(identity.ktpNumber) || !identity.simNumber.trim() || identity.address.trim().length < 10) { toast.error('Lengkapi nama, email akun, telepon, NIK 16 digit, SIM A, dan alamat domisili.'); setCurrentStep(2); return; }
+      const requiredDocuments: Array<keyof RenterIdentity['files']> = ['ktp','simA','familyCard','selfieKtp'];
+      if (requiredDocuments.some((key) => !identity.files[key] && !identity.paths[key])) { toast.error('Lengkapi KTP, SIM A, Kartu Keluarga, dan selfie memegang KTP.'); setCurrentStep(2); return; }
+      if (!signatureDataUrl) { toast.error('Tanda tangani perjanjian sewa secara digital.'); setCurrentStep(5); return; }
+      if (signedContractSnapshot !== createContractSnapshot()) { setSignatureDataUrl(''); setSignedContractSnapshot(''); toast.error('Data kontrak berubah setelah tanda tangan. Periksa kontrak lalu tanda tangani ulang.'); setCurrentStep(5); return; }
       if (!reusableFeeId && !bookingFeeProof) { toast.error('Unggah bukti pembayaran biaya booking Rp25.000.'); return; }
       setSubmitting(true);
-      let proofPath: string | null = null;
-      if (!reusableFeeId && bookingFeeProof) {
-        const ext = bookingFeeProof.type === 'image/png' ? 'png' : bookingFeeProof.type === 'image/webp' ? 'webp' : 'jpg';
-        proofPath = `${currentUser.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from('booking-fee-proofs').upload(proofPath, bookingFeeProof, { contentType: bookingFeeProof.type });
-        if (uploadError) { setSubmitting(false); toast.error('Bukti pembayaran gagal diunggah.'); return; }
-      }
-      const payload = {
-        vehicle_id: selectedVehicle.id, start_date: startDate, end_date: endDate, duration_type: durationType,
-        with_driver: withDriver, total_price: totalPrice, dp_amount: dpAmount,
-        trip_origin: tripPlan.origin, trip_destination: tripPlan.destination, trip_purpose: tripPlan.purpose || 'Perjalanan pribadi',
-        guarantee_type: guaranteeType, guarantee_doc_url: null,
+      const uploadPrivate = async (file: File, path: string) => {
+        const { data, error } = await supabase.storage.from('renter-kyc-private').upload(path, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+        return data.path;
       };
-      const { error: submitError } = await supabase.rpc('submit_booking_with_fee', {
-        p_booking: payload, p_proof_path: proofPath, p_reuse_transaction_id: reusableFeeId || null,
-      });
+      let proofPath: string | null = null;
+      let savedSignaturePath = '';
+      try {
+        const documentPath = async (key: keyof RenterIdentity['files'], oldPath: string | undefined) => {
+          const file = identity.files[key];
+          if (!file) return oldPath;
+          const extension = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1] === 'jpeg' ? 'jpg' : file.type.split('/')[1];
+          return uploadPrivate(file, `${currentUser.id}/kyc/${key}-${crypto.randomUUID()}.${extension}`);
+        };
+        const [ktpPath, simPath, familyPath, selfiePath] = await Promise.all([
+          documentPath('ktp', identity.paths.ktp), documentPath('simA', identity.paths.simA),
+          documentPath('familyCard', identity.paths.familyCard), documentPath('selfieKtp', identity.paths.selfieKtp),
+        ]);
+        if (!ktpPath || !simPath || !familyPath || !selfiePath) throw new Error('Dokumen identitas belum lengkap.');
+        const { error: profileError } = await supabase.from('users').update({ full_name: identity.fullName.trim(), phone: identity.phone.trim() }).eq('id', currentUser.id);
+        if (profileError) throw profileError;
+        setCurrentUser({ ...currentUser, name: identity.fullName.trim(), phone: identity.phone.trim() });
+        const { error: kycError } = await supabase.from('kyc_documents_individual').upsert({
+          user_id: currentUser.id, ktp_number: identity.ktpNumber, ktp_scan_url: ktpPath,
+          sim_number: identity.simNumber, sim_scan_url: simPath, kk_scan_url: familyPath, selfie_ktp_url: selfiePath,
+          address: identity.address.trim(), residential_latitude: identity.latitude, residential_longitude: identity.longitude,
+        }, { onConflict: 'user_id' });
+        if (kycError) throw kycError;
+        const signatureBlob = await (await fetch(signatureDataUrl)).blob();
+        savedSignaturePath = await uploadPrivate(new File([signatureBlob], 'renter-signature.png', { type: 'image/png' }), `${currentUser.id}/contracts/${crypto.randomUUID()}.png`);
+        const contractSnapshot = createContractSnapshot();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(contractSnapshot));
+        const contractHash = Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2,'0')).join('');
+        if (!reusableFeeId && bookingFeeProof) {
+          const ext = bookingFeeProof.type === 'image/png' ? 'png' : bookingFeeProof.type === 'image/webp' ? 'webp' : 'jpg';
+          proofPath = `${currentUser.id}/${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from('booking-fee-proofs').upload(proofPath, bookingFeeProof, { contentType: bookingFeeProof.type });
+          if (uploadError) throw uploadError;
+        }
+        const payload = {
+          vehicle_id: selectedVehicle.id, start_date: startDate, end_date: endDate, duration_type: durationType,
+          with_driver: withDriver, total_price: totalPrice, dp_amount: dpAmount,
+          trip_origin: tripPlan.origin, trip_destination: tripPlan.destination, trip_purpose: tripPlan.purpose || 'Perjalanan pribadi',
+          guarantee_type: guaranteeType, guarantee_doc_url: null,
+          contract_signed: true, contract_signer_name: identity.fullName.trim(), contract_version: '1.0.0',
+          contract_content_snapshot: contractSnapshot, contract_sha256: contractHash, contract_signature_path: savedSignaturePath,
+        };
+        const { error: submitError } = await supabase.rpc('submit_booking_with_fee', {
+          p_booking: payload, p_proof_path: proofPath, p_reuse_transaction_id: reusableFeeId || null,
+        });
+        if (submitError) throw submitError;
+      } catch (error) {
+        // Keep newly uploaded identity files: the KYC profile may already reference them.
+        setSubmitting(false);
+        toast.error(error instanceof Error && error.message.includes('vehicle_unavailable') ? 'Kendaraan tidak lagi tersedia. Pilih kendaraan lain.' : error instanceof Error && error.message ? `Data profil atau booking gagal disimpan: ${error.message}` : 'Data profil atau booking gagal disimpan.');
+        return;
+      }
       setSubmitting(false);
-      if (submitError) { toast.error(submitError.message === 'vehicle_unavailable' ? 'Kendaraan tidak lagi tersedia. Pilih kendaraan lain.' : 'Pemesanan gagal dikirim. Pastikan database sudah diperbarui dan kendaraan terdaftar.'); return; }
       toast.success(reusableFeeId ? 'Booking pengganti terkirim menggunakan biaya yang sudah dibayar.' : 'Booking dan bukti pembayaran terkirim untuk validasi admin.');
       reset();
       setCurrentPage('dashboard');
@@ -257,7 +304,7 @@ export default function BookingFlow() {
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setDuration(opt.id as any, withDriver)}
+                            onClick={() => { invalidateSignature(); setDuration(opt.id as any, withDriver); }}
                             className={`p-4 rounded-xl text-left transition-all ${
                               durationType === opt.id
                                 ? 'neu-gold'
@@ -287,7 +334,7 @@ export default function BookingFlow() {
                             key={String(opt.id)}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setDuration(durationType || 'DAILY', opt.id)}
+                            onClick={() => { invalidateSignature(); setDuration(durationType || 'DAILY', opt.id); }}
                             className={`p-4 rounded-xl text-left transition-all ${
                               withDriver === opt.id
                                 ? 'neu-gold'
@@ -317,7 +364,7 @@ export default function BookingFlow() {
                             <input
                               type="date"
                               value={startDate || ''}
-                              onChange={(e) => setDates(e.target.value, endDate || '')}
+                              onChange={(e) => { invalidateSignature(); setDates(e.target.value, endDate || ''); }}
                               className="input-luxury pl-10 [color-scheme:dark]"
                             />
                           </div>
@@ -329,7 +376,7 @@ export default function BookingFlow() {
                             <input
                               type="date"
                               value={endDate || ''}
-                              onChange={(e) => setDates(startDate || '', e.target.value)}
+                              onChange={(e) => { invalidateSignature(); setDates(startDate || '', e.target.value); }}
                               className="input-luxury pl-10 [color-scheme:dark]"
                             />
                           </div>
@@ -339,104 +386,16 @@ export default function BookingFlow() {
                   </div>
                 )}
 
-                {/* Step 2: Renter Information */}
+                {/* Step 2: Renter Profile and Documents */}
                 {currentStep === 2 && (
                   <div className="space-y-6">
                     <div>
                       <h2 className="font-[Playfair_Display] text-2xl font-bold text-white mb-2">
-                        STEP 2: Informasi Penyewa
+                        STEP 2: Profil dan Dokumen Penyewa
                       </h2>
-                      <p className="text-gray-400 text-sm">Lengkapi data diri Anda untuk proses verifikasi</p>
+                      <p className="text-gray-400 text-sm">Lengkapi profil penyewa, lokasi domisili, dan dokumen verifikasi.</p>
                     </div>
-
-                    {/* Nama Lengkap - Full Width */}
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Nama Lengkap:</label>
-                      <input
-                        type="text"
-                        value={renterInfo.fullName}
-                        onChange={(e) => setRenterInfo({ fullName: e.target.value })}
-                        className="input-luxury w-full"
-                        placeholder="John Doe"
-                      />
-                    </div>
-
-                    {/* No. KTP dan No. SIM - 2 Kolom */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">No. KTP:</label>
-                        <input
-                          type="text"
-                          value={renterInfo.ktpNumber}
-                          onChange={(e) => setRenterInfo({ ktpNumber: e.target.value })}
-                          className="input-luxury"
-                          placeholder="317XXXXXXXXX"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 mb-1.5 block">No. SIM:</label>
-                        <input
-                          type="text"
-                          value={renterInfo.simNumber}
-                          onChange={(e) => setRenterInfo({ simNumber: e.target.value })}
-                          className="input-luxury"
-                          placeholder="123XXXXXXXXX"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Upload Dokumen */}
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Upload Dokumen:</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: 'ktp', label: 'KTP', uploaded: uploadStatus.ktp },
-                          { id: 'sim', label: 'SIM', uploaded: uploadStatus.sim },
-                          { id: 'kk', label: 'KK', uploaded: uploadStatus.kk },
-                        ].map((doc) => (
-                          <motion.div
-                            key={doc.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setUploadStatus({ ...uploadStatus, [doc.id]: !doc.uploaded })}
-                            className={`aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${
-                              doc.uploaded
-                                ? 'neu-gold border-2 border-gold-500/30'
-                                : 'neu-soft'
-                            }`}
-                          >
-                            {doc.uploaded ? (
-                              <>
-                                <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center mb-2">
-                                  <FileText className="w-6 h-6 text-gold-400" />
-                                </div>
-                                <p className="text-sm text-gold-300 font-medium mb-1">{doc.label}</p>
-                                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                              </>
-                            ) : (
-                              <>
-                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                                  <Upload className="w-6 h-6 text-gray-500" />
-                                </div>
-                                <p className="text-sm text-gray-400 font-medium mb-1">{doc.label}</p>
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
-                              </>
-                            )}
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Lanjut Button */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleNext}
-                      className="w-full btn-luxury py-3.5 flex items-center justify-center gap-2"
-                    >
-                      LANJUT
-                      <ArrowRight className="w-5 h-5" />
-                    </motion.button>
+                    <RenterIdentityForm value={identity} onChange={(next) => { setIdentity(next); setSignatureDataUrl(''); setSignedContractSnapshot(''); }}/>
                   </div>
                 )}
 
@@ -458,7 +417,7 @@ export default function BookingFlow() {
                           <input
                             type="text"
                             value={tripPlan.origin}
-                            onChange={(e) => setTripPlan({ origin: e.target.value })}
+                            onChange={(e) => { invalidateSignature(); setTripPlan({ origin: e.target.value }); }}
                             className="input-luxury pl-10"
                             placeholder="Kota asal"
                           />
@@ -471,7 +430,7 @@ export default function BookingFlow() {
                           <input
                             type="text"
                             value={tripPlan.destination}
-                            onChange={(e) => setTripPlan({ destination: e.target.value })}
+                            onChange={(e) => { invalidateSignature(); setTripPlan({ destination: e.target.value }); }}
                             className="input-luxury pl-10"
                             placeholder="Kota tujuan"
                           />
@@ -481,7 +440,7 @@ export default function BookingFlow() {
                         <label className="text-xs text-gray-400 mb-1.5 block">Tujuan Perjalanan</label>
                         <select
                           value={tripPlan.purpose}
-                          onChange={(e) => setTripPlan({ purpose: e.target.value })}
+                          onChange={(e) => { invalidateSignature(); setTripPlan({ purpose: e.target.value }); }}
                           className="input-luxury"
                         >
                           <option value="">Pilih tujuan</option>
@@ -531,7 +490,7 @@ export default function BookingFlow() {
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setGuarantee(opt.id as any, guaranteeDocs)}
+                            onClick={() => { invalidateSignature(); setGuarantee(opt.id as any, guaranteeDocs); }}
                             className={`p-4 rounded-xl text-center transition-all ${
                               guaranteeType === opt.id
                                 ? 'neu-gold'
@@ -570,21 +529,16 @@ export default function BookingFlow() {
                     <TermsAndConditions
                       terms={getTermsByUserType('individual')}
                       agreed={agreeTerms}
-                      onAgree={setAgreeTerms}
+                      onAgree={(agreed) => { invalidateSignature(); setAgreeTerms(agreed); }}
                     />
 
-                    {/* E-Signature */}
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">E-Signature</label>
-                      <motion.div
-                        whileHover={{ scale: 1.01 }}
-                        className="p-6 rounded-xl neu-soft text-center cursor-pointer"
-                      >
-                        <PenTool className="w-8 h-8 text-gold-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-300 font-medium">Tanda Tangan Digital</p>
-                        <p className="text-xs text-gray-500 mt-1">Klik untuk membuat e-signature</p>
-                      </motion.div>
-                    </div>
+                    <section className="space-y-3 rounded-xl border border-gold-500/20 bg-gold-500/5 p-4">
+                      <div><p className="text-xs font-semibold uppercase tracking-wider text-gold-300">Perjanjian elektronik sewa kendaraan</p><h3 className="mt-1 font-[Playfair_Display] text-xl font-bold text-white">Ringkasan kontrak Anda</h3></div>
+                      <dl className="grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-xs text-gray-500">Penyewa</dt><dd className="text-gray-100">{identity.fullName || 'Nama sesuai KTP'} · {identity.email || 'Email akun'}</dd><dd className="text-xs text-gray-400">{identity.phone || 'Nomor telepon'} · NIK {identity.ktpNumber ? `••••${identity.ktpNumber.slice(-4)}` : '—'}</dd></div><div><dt className="text-xs text-gray-500">Kendaraan dan pemilik</dt><dd className="text-gray-100">{selectedVehicle.name}</dd><dd className="text-xs text-gray-400">Pemilik rental kendaraan yang dipilih</dd></div><div><dt className="text-xs text-gray-500">Masa sewa</dt><dd className="text-gray-100">{startDate || 'Tanggal mulai'} – {endDate || 'Tanggal selesai'} · {withDriver ? 'Dengan driver' : 'Lepas kunci'}</dd></div><div><dt className="text-xs text-gray-500">Harga sewa dan booking</dt><dd className="text-gray-100">{formatCurrency(totalPrice)} · biaya booking Rp25.000</dd><dd className="text-xs text-gray-400">Biaya booking tidak dapat dikembalikan. Jika kendaraan tidak tersedia, biaya terverifikasi dipakai untuk kendaraan lain sampai pemilik mengonfirmasi.</dd></div></dl>
+                      <div className="rounded-lg border border-white/5 bg-black/20 p-3 text-xs leading-5 text-gray-300"><p className="font-medium text-gray-100">Ketentuan utama</p><p className="mt-1">Penyewa bertanggung jawab atas kebenaran data, penggunaan kendaraan sesuai tujuan dan masa sewa, perawatan wajar, denda/pelanggaran selama penggunaan, serta pengembalian kendaraan sesuai waktu dan kondisi yang disepakati. Perubahan masa sewa memerlukan persetujuan pemilik. Detail hak dan kewajiban mengikuti seluruh syarat dan ketentuan di atas dan tersimpan sebagai salinan kontrak booking.</p><p className="mt-2 text-gray-500">Versi kontrak {individualTerms.version} · tanda tangan dan waktu persetujuan dicatat bersama booking.</p></div>
+                    </section>
+
+                    <DigitalSignaturePad value={signatureDataUrl} onChange={(dataUrl) => { setSignatureDataUrl(dataUrl); setSignedContractSnapshot(createContractSnapshot()); }}/>
                   </div>
                 )}
               </motion.div>
@@ -604,10 +558,11 @@ export default function BookingFlow() {
                 </motion.button>
               )}
               <motion.button
+                disabled={submitting}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleNext}
-                className="flex-1 btn-luxury py-3 flex items-center justify-center gap-2"
+                className="flex-1 btn-luxury py-3 flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Mengirim…' : currentStep === 5 ? 'Kirim Booking' : 'Lanjut'}
                 <ArrowRight className="w-4 h-4" />
