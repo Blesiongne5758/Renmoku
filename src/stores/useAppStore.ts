@@ -37,6 +37,7 @@ export interface Vehicle {
     right?: string;
   };
   has360View?: boolean; // otomatis true jika 4 sisi terupload
+  model3D?: string;
 }
 
 export interface Booking {

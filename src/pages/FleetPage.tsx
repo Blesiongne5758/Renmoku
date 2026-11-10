@@ -1,20 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Vehicle, useAppStore } from '../stores/useAppStore';
 import { vehicles } from '../data/mockData';
 import VehicleCard from '../components/VehicleCard';
 import VehicleShowcase360 from '../components/VehicleShowcase360';
 import SearchFilter from '../components/SearchFilter';
+import { supabase } from '../lib/supabase';
+import VehicleModelViewer from '../components/VehicleModelViewer';
+
+type PublishedModel = { id:string; brand:string; model:string; year:number; transmission:string; capacity:number; fuel_type:string; price_daily:number; location:string; spin_model_url:string };
 
 export default function FleetPage() {
   const { setCurrentPage, setSelectedVehicle, setShowBookingModal } = useAppStore();
   const [showcase360, setShowcase360] = useState<Vehicle | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [publishedModels, setPublishedModels] = useState<PublishedModel[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.from('published_spin_vehicles').select('id,brand,model,year,transmission,capacity,fuel_type,price_daily,location,spin_model_url').order('created_at',{ascending:false})
+      .then(({data,error}) => { if(active && !error) setPublishedModels((data ?? []) as PublishedModel[]); });
+    return () => { active = false; };
+  }, []);
 
   const handleBook = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setShowBookingModal(true);
     setCurrentPage('booking');
+  };
+
+  const openPublishedModel = (item: PublishedModel) => {
+    const transmission = item.transmission.toLowerCase() === 'manual' ? 'manual' : 'automatic';
+    const validFuel = ['bensin','diesel','hybrid','electric'].includes(item.fuel_type.toLowerCase()) ? item.fuel_type.toLowerCase() as Vehicle['fuel'] : 'bensin';
+    const price = Number(item.price_daily);
+    setSelectedVehicle({
+      id:item.id,name:`${item.brand} ${item.model}`,brand:item.brand,type:'luxury',year:item.year,transmission,
+      seats:item.capacity,fuel:validFuel,pricePerDay:price,pricePerWeek:price*7,pricePerMonth:price*30,
+      image:'',images:[],features:[],available:true,ownerId:'',location:item.location,rating:0,reviews:0,model3D:item.spin_model_url,
+    });
+    setCurrentPage('vehicle-detail');
   };
 
   return (
@@ -73,6 +97,19 @@ export default function FleetPage() {
             />
           ))}
         </div>
+
+        {publishedModels.length > 0 && <section className="mt-16 border-t border-white/10 pt-10">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div><p className="text-xs font-semibold uppercase tracking-[.22em] text-gold-400">Showroom digital</p><h2 className="mt-2 font-[Playfair_Display] text-2xl font-bold text-white sm:text-3xl">Model kendaraan 3D</h2><p className="mt-2 max-w-xl text-sm text-gray-400">Putar model kendaraan yang dipublikasikan pemilik rental setelah ditinjau.</p></div>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400">{publishedModels.length} model tersedia</span>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {publishedModels.map((item) => <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[.03]">
+              <VehicleModelViewer src={item.spin_model_url} title={`${item.brand} ${item.model}`} className="h-64 rounded-none" />
+              <div className="p-5"><h3 className="text-lg font-semibold text-white">{item.brand} {item.model}</h3><p className="mt-1 text-sm text-gray-400">{item.year} · {item.capacity} kursi · {item.location}</p><p className="mt-4 text-sm text-gray-300">Mulai <strong className="text-gold-300">Rp {Number(item.price_daily).toLocaleString('id-ID')}</strong> / hari</p><button onClick={()=>openPublishedModel(item)} className="mt-4 w-full rounded-lg border border-gold-400/30 px-4 py-2 text-sm font-medium text-gold-200 transition hover:bg-gold-400/10">Lihat kendaraan & sewa</button></div>
+            </article>)}
+          </div>
+        </section>}
 
         {/* Price calculator info */}
         <motion.div

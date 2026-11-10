@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { vehicles, formatCurrency } from '../data/mockData';
+import VehicleModelViewer from '../components/VehicleModelViewer';
 
 export default function VehicleDetailPage() {
   const { selectedVehicle, setCurrentPage } = useAppStore();
@@ -111,7 +112,7 @@ export default function VehicleDetailPage() {
             <div className="card-luxury p-6">
               <div className="relative aspect-video rounded-xl overflow-hidden neu-pressed mb-4">
                 {/* 360° View */}
-                <div
+                {vehicle.model3D ? <VehicleModelViewer src={vehicle.model3D} title={vehicle.name} className="h-full min-h-[280px]" /> : <div
                   className="w-full h-full flex items-center justify-center"
                   style={{
                     transform: `rotateY(${rotation}deg) scale(${zoom})`,
@@ -124,7 +125,7 @@ export default function VehicleDetailPage() {
                     className="max-w-full max-h-full object-contain"
                     draggable={false}
                   />
-                </div>
+                </div>}
 
                 {/* 360° Badge */}
                 <div className="absolute top-4 left-4 badge-gold flex items-center gap-2">

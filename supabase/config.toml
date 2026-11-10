@@ -1,0 +1,5 @@
+[functions.spin-payment-webhook]
+verify_jwt = false
+
+[functions.spin-renewal-webhook]
+verify_jwt = false

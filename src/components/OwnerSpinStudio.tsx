@@ -1,11 +1,14 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { Clapperboard, Download, Film, Loader2, MoveHorizontal, Play, Rotate3D, Save, Upload, X } from 'lucide-react';
+import { Clapperboard, Download, Film, Loader2, MoveHorizontal, Play, Rotate3D, Save, Upload, X, CreditCard, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { cloudinaryHelpers } from '../lib/cloudinary';
 import { useAppStore } from '../stores/useAppStore';
+import VehicleModelViewer from './VehicleModelViewer';
 
-type SpinVehicle = { id: string; source: 'vehicle' | 'submission'; brand: string; model: string; year: number; images: string[] | null; photoPaths?: Record<string, string> | null; spin_frames: string[] | null; spin_video_url: string | null };
+type SpinVehicle = { id: string; source: 'vehicle' | 'submission'; brand: string; model: string; year: number; images: string[] | null; photoPaths?: Record<string, string> | null; spin_frames: string[] | null; spin_video_url: string | null; submissionStatus?: string; spin_model_url?: string | null };
+type SpinCatalog = { packages: Array<{id:string;name:string;package_type:'monthly'|'top_up';generations:number;price_idr:number|null;provider_cost_idr:number|null;renmoku_share_idr:number|null;purchasable:boolean}>; wallet:{monthly_credits:number;topup_credits:number;package_id?:string;subscription_status:string;period_end?:string|null;payment_type?:string|null}; jobs:Array<{id:string;submission_id:string;status:string;provider_task_id:string|null;model_path:string|null;error_message:string|null;created_at:string}>; orders:Array<{id:string;package_id:string;status:string;subscription_creation_uncertain:boolean;midtrans_order_id:string;created_at:string}>; creditRateReady:boolean };
+declare global { interface Window { snap?: { pay:(token:string,callbacks:{onSuccess:()=>void;onPending:()=>void;onError:()=>void;onClose:()=>void})=>void } } }
 type Frame = { key: string; src: string; file?: File; sourcePath?: string };
 const MAX_FRAMES = 36;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
@@ -24,12 +27,23 @@ export default function OwnerSpinStudio() {
   const [frameIndex, setFrameIndex] = useState(0);
   const [videoUrl, setVideoUrl] = useState('');
   const [error, setError] = useState('');
+  const [catalog, setCatalog] = useState<SpinCatalog | null>(null);
+  const [catalogError, setCatalogError] = useState('');
+  const [checkoutBusy, setCheckoutBusy] = useState('');
   const dragX = useRef<number | null>(null);
   const videoCanvas = useRef<HTMLCanvasElement | null>(null);
   const frameUrls = useRef<string[]>([]);
   const videoObjectUrl = useRef('');
 
   const selected = vehicles.find((vehicle) => vehicle.id === selectedId);
+
+  const loadCatalog = useCallback(async () => {
+    const { data, error: catalogLoadError } = await supabase.functions.invoke('spin-catalog');
+    if (catalogLoadError) { setCatalogError('Paket AI Spin belum tersedia. Jalankan migrasi dan Edge Functions Supabase.'); return; }
+    setCatalog(data as SpinCatalog);
+    setCatalogError('');
+  }, []);
+  useEffect(() => { if (currentUser?.id) void loadCatalog(); }, [currentUser?.id, loadCatalog]);
 
   const loadVehicles = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -40,12 +54,12 @@ export default function OwnerSpinStudio() {
     if (!ownerIds.length) { setVehicles([]); setLoading(false); return; }
     const [{ data, error: vehicleError }, { data: submissions, error: submissionError }] = await Promise.all([
       supabase.from('vehicles').select('id,brand,model,year,images,spin_frames,spin_video_url').in('owner_id', ownerIds).order('created_at', { ascending: false }),
-      supabase.from('owner_vehicle_submissions').select('id,brand,model,year,vehicle_photos,spin_frames,spin_video_url').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+      supabase.from('owner_vehicle_submissions').select('id,brand,model,year,status,vehicle_photos,spin_frames,spin_video_url,spin_model_url').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
     ]);
     if (vehicleError) { setError('Daftar kendaraan gagal dimuat.'); setLoading(false); return; }
     if (submissionError) { setError('Foto pengajuan kendaraan gagal dimuat. Pastikan migrasi owner_features.sql sudah diterapkan.'); setLoading(false); return; }
     const nextVehicles = ((data ?? []) as Omit<SpinVehicle, 'source'>[]).map((vehicle) => ({ ...vehicle, source: 'vehicle' as const }));
-    const submissionsWithExteriorPhotos = ((submissions ?? []) as Array<Omit<SpinVehicle, 'source' | 'images'> & { vehicle_photos: Record<string, string> }>).filter((submission) => Object.keys(submission.vehicle_photos ?? {}).length > 0);
+    const submissionsWithExteriorPhotos = ((submissions ?? []) as Array<Omit<SpinVehicle, 'source' | 'images'> & { vehicle_photos: Record<string, string>; status:string }>).filter((submission) => Object.keys(submission.vehicle_photos ?? {}).length > 0);
     const submissionFrames = await Promise.all(submissionsWithExteriorPhotos.map(async (submission) => {
       const { data: signed } = await supabase.storage.from('owner-private').createSignedUrls(Object.values(submission.vehicle_photos), 3600);
       const urlByPath = new Map((signed ?? []).map((item: { path: string | null; signedUrl: string | null }) => [item.path ?? '', item.signedUrl ?? '']));
@@ -56,6 +70,8 @@ export default function OwnerSpinStudio() {
         ...submission, source: 'submission' as const, images,
         photoPaths: submission.vehicle_photos,
         spin_frames: frames,
+        submissionStatus: submission.status,
+        spin_model_url: submission.spin_model_url,
       } as SpinVehicle;
     }));
     const next = [...nextVehicles, ...submissionFrames];
@@ -215,6 +231,59 @@ export default function OwnerSpinStudio() {
     } finally { setGenerating(false); }
   };
 
+  const generateModel = async () => {
+    if (!selected || selected.source !== 'submission') return toast.error('Model 3D AI dibuat dari foto pengajuan kendaraan.');
+    if ((selected.images?.length ?? 0) < 2) return toast.error('Unggah sedikitnya dua foto eksterior dari sudut berbeda.');
+    setGenerating(true);
+    const { data, error: functionError } = await supabase.functions.invoke('spin-model-generate', { body: { submissionId: selected.id } });
+    setGenerating(false);
+    if (functionError || data?.error) { toast.error(data?.error ?? functionError?.message ?? 'Pembuatan model gagal.'); return; }
+    toast.success('Generasi model dimulai. Hasil akan muncul untuk ditinjau setelah selesai.');
+    await loadCatalog();
+  };
+
+  const syncModelJob = async (jobId: string) => {
+    const { data, error: syncError } = await supabase.functions.invoke('spin-model-sync', { body: { jobId } });
+    if (syncError || data?.error) { toast.error(data?.error ?? 'Status pembuatan model gagal diperiksa.'); return; }
+    if (data.status === 'review') toast.success('Model GLB siap ditinjau.');
+    if (data.status === 'failed') toast.error(data.error ?? 'Generasi gagal; kredit sudah dikembalikan.');
+    await loadCatalog();
+  };
+
+  const saveModelReview = async (jobId: string, makePublic: boolean) => {
+    const { data, error: reviewError } = await supabase.functions.invoke('spin-model-publish', { body: { jobId, makePublic } });
+    if (reviewError || data?.error) { toast.error(data?.error ?? 'Model gagal disimpan.'); return; }
+    toast.success(makePublic ? (data.listingApproved ? 'Model disimpan dan ditayangkan di halaman armada.' : 'Model disimpan. Tayang otomatis setelah admin menyetujui kendaraan.') : 'Model 3D disimpan pribadi.');
+    await loadCatalog();
+  };
+
+  const checkout = async (packageId: string, paymentType: 'credit_card'|'gopay') => {
+    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY as string | undefined;
+    if (!clientKey) return toast.error('Atur VITE_MIDTRANS_CLIENT_KEY saat build sebelum menerima pembayaran.');
+    setCheckoutBusy(packageId);
+    const { data, error: checkoutError } = await supabase.functions.invoke('spin-checkout', { body: { packageId, paymentType } });
+    setCheckoutBusy('');
+    if (checkoutError || data?.error) { toast.error(data?.error ?? checkoutError?.message ?? 'Pembayaran belum dapat dibuka.'); return; }
+    const production = import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === 'true';
+    if (!window.snap) {
+      const script = document.createElement('script');
+      script.src = production ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js';
+      script.setAttribute('data-client-key', clientKey);
+      script.onload = () => window.snap?.pay(data.token, { onSuccess: () => { toast.success('Pembayaran diterima; kredit akan aktif setelah webhook terverifikasi.'); window.setTimeout(() => void loadCatalog(), 2500); }, onPending: () => toast('Pembayaran menunggu konfirmasi.'), onError: () => toast.error('Pembayaran gagal.'), onClose: () => toast('Jendela pembayaran ditutup.') });
+      script.onerror = () => toast.error('Layanan Midtrans tidak dapat dimuat.');
+      document.head.appendChild(script);
+    } else window.snap.pay(data.token, { onSuccess: () => { toast.success('Pembayaran diterima; kredit akan aktif setelah webhook terverifikasi.'); window.setTimeout(() => void loadCatalog(), 2500); }, onPending: () => toast('Pembayaran menunggu konfirmasi.'), onError: () => toast.error('Pembayaran gagal.'), onClose: () => toast('Jendela pembayaran ditutup.') });
+  };
+
+  useEffect(() => {
+    const processingJobs = catalog?.jobs.filter((job) => job.status === 'processing' && job.provider_task_id) ?? [];
+    if (!processingJobs.length) return;
+    const timer = window.setInterval(() => {
+      for (const job of processingJobs) void supabase.functions.invoke('spin-model-sync', { body: { jobId: job.id } }).then(() => void loadCatalog());
+    }, 12000);
+    return () => window.clearInterval(timer);
+  }, [catalog?.jobs, loadCatalog]);
+
   const onPointerDown = (event: React.PointerEvent) => { dragX.current = event.clientX; setPlaying(false); event.currentTarget.setPointerCapture(event.pointerId); };
   const onPointerMove = (event: React.PointerEvent) => {
     if (dragX.current === null || frames.length < 2) return;
@@ -223,6 +292,23 @@ export default function OwnerSpinStudio() {
   };
 
   return <div className="space-y-5">
+    <section className="rounded-2xl border border-white/10 bg-[#111315] p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><h2 className="text-lg font-semibold text-white">Kredit AI Spin</h2><p className="mt-1 max-w-2xl text-sm text-gray-400">Pilih paket bulanan untuk tagihan otomatis lewat Kartu/GoPay, atau isi ulang kredit sesuai kebutuhan. Setiap model memakai kredit AI dan margin Renmoku dihitung 50% dari biaya AI.</p></div>
+        <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl border border-white/10 px-4 py-2"><strong className="block text-xl text-amber-200">{catalog?.wallet.monthly_credits ?? 0}</strong><span className="text-[11px] text-gray-400">kredit bulanan</span></div><div className="rounded-xl border border-white/10 px-4 py-2"><strong className="block text-xl text-amber-200">{catalog?.wallet.topup_credits ?? 0}</strong><span className="text-[11px] text-gray-400">kredit refill</span></div></div>
+      </div>
+      {catalog?.wallet.subscription_status === 'active' && <p className="mt-3 text-xs text-emerald-300">Langganan aktif · perpanjangan {catalog.wallet.period_end ? new Date(catalog.wallet.period_end).toLocaleDateString('id-ID') : 'otomatis'} · {catalog.wallet.payment_type === 'gopay' ? 'GoPay' : 'Kartu'}</p>}
+      {catalog?.orders.length ? <div className="mt-4 space-y-2">{catalog.orders.filter((order)=>order.status==='pending'||order.status==='processing').map((order)=><div key={order.id} className={`rounded-lg border p-3 text-xs ${order.subscription_creation_uncertain?'border-amber-300/30 bg-amber-300/[.06] text-amber-100':'border-white/10 bg-white/[.02] text-gray-300'}`}><strong>{order.subscription_creation_uncertain?'Pembayaran perlu rekonsiliasi admin':'Pembayaran sedang diproses'}</strong><p className="mt-1">Referensi pesanan: {order.midtrans_order_id}. {order.subscription_creation_uncertain?'Hubungi admin dengan nomor ini dan jangan membuat langganan bulanan baru.':'Saldo aktif setelah pembayaran terverifikasi Midtrans.'}</p></div>)}</div>:null}
+      {catalogError && <p className="mt-3 rounded-lg bg-amber-400/10 p-3 text-xs text-amber-200">{catalogError}</p>}
+      {catalog && !catalog.creditRateReady && <p className="mt-3 rounded-lg bg-amber-400/10 p-3 text-xs text-amber-200">Harga belum tersedia. Admin perlu mengatur secret MESHY_CREDIT_COST_IDR berdasarkan biaya aktual kredit Meshy.</p>}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{catalog?.packages.map((pkg) => <article key={pkg.id} className="rounded-xl border border-white/10 bg-white/[.025] p-4">
+        <div className="flex items-start justify-between gap-2"><div><h3 className="font-medium text-white">{pkg.name}</h3><p className="mt-1 text-xs text-gray-400">{pkg.generations} model 3D {pkg.package_type==='monthly'?'per bulan':'sekali isi'}</p></div><span className="rounded-full bg-amber-300/10 px-2 py-1 text-[10px] uppercase tracking-wide text-amber-200">{pkg.package_type==='monthly'?'bulanan':'refill'}</span></div>
+        <p className="mt-3 text-lg font-semibold text-amber-200">{pkg.price_idr ? `Rp ${pkg.price_idr.toLocaleString('id-ID')}` : 'Harga belum diatur'}</p>
+        {pkg.price_idr && <p className="mt-1 text-[11px] text-gray-500">Termasuk biaya AI Rp {pkg.provider_cost_idr?.toLocaleString('id-ID')} + bagian Renmoku Rp {pkg.renmoku_share_idr?.toLocaleString('id-ID')}</p>}
+        {!pkg.purchasable&&pkg.price_idr!==null&&<p className="mt-2 text-[11px] text-amber-200">Di bawah batas transaksi Midtrans Rp 10.000.</p>}
+        <div className="mt-3 grid grid-cols-2 gap-2">{(['credit_card','gopay'] as const).map((method) => <button key={method} disabled={!pkg.purchasable || Boolean(checkoutBusy) || (pkg.package_type==='monthly'&&Boolean(catalog?.wallet.subscription_status==='active'||catalog?.wallet.subscription_status==='past_due'))} onClick={() => void checkout(pkg.id,method)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-2 py-2 text-xs text-gray-200 hover:border-amber-300/40 disabled:opacity-40">{checkoutBusy===pkg.id?<Loader2 className="h-3.5 w-3.5 animate-spin"/>:<CreditCard className="h-3.5 w-3.5 text-amber-300"/>}{method==='gopay'?'GoPay':'Kartu'}</button>)}</div>
+      </article>)}</div>
+    </section>
     <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#111315]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6"><div><h2 className="flex items-center gap-2 text-lg font-semibold"><Rotate3D className="h-5 w-5 text-amber-300"/>Studio Spin 360°</h2><p className="mt-1 text-sm text-gray-400">Susun foto mengelilingi kendaraan, pratinjau showroom, dan ekspor video spin.</p></div>{selected && <label className="text-sm text-gray-400">Kendaraan<select disabled={generating || saving} value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="ml-2 max-w-[240px] rounded-lg border border-white/10 bg-[#1a1c1e] px-3 py-2 text-white disabled:opacity-50">{vehicles.map((vehicle) => <option key={`${vehicle.source}-${vehicle.id}`} value={vehicle.id}>{vehicle.brand} {vehicle.model} ({vehicle.year}){vehicle.source === 'submission' ? ' · Pengajuan' : ''}</option>)}</select></label>}</header>
       {loading ? <div className="p-12 text-center text-sm text-gray-400">Memuat kendaraan…</div> : error ? <div className="p-6 text-sm text-amber-200">{error}</div> : !selected ? <div className="p-10 text-center"><Clapperboard className="mx-auto mb-3 h-9 w-9 text-gray-500"/><p className="font-medium text-white">Belum ada foto kendaraan</p><p className="mt-1 text-sm text-gray-400">Unggah foto kendaraan saat mengajukan kendaraan rental; foto eksteriornya akan muncul di sini.</p></div> : <div className="grid xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -237,8 +323,38 @@ export default function OwnerSpinStudio() {
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-medium text-white">Urutan foto</h3><p className="mt-1 text-xs text-gray-500">Unggah setidaknya 4 sudut berurutan. Lebih banyak frame membuat putaran lebih halus.</p></div><label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 hover:bg-white/5"><Upload className="h-4 w-4 text-amber-300"/>Tambah foto<input type="file" accept="image/*" multiple onChange={addFiles} className="sr-only"/></label></div>
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">{frames.map((frame, index) => <div key={frame.key} className={`group relative overflow-hidden rounded-lg border ${index === frameIndex ? 'border-amber-300' : 'border-white/10'}`}><button onClick={() => { setPlaying(false); setFrameIndex(index); }} className="block w-full"><img src={frame.src} alt={`Frame ${index + 1}`} className="aspect-[4/3] w-full object-cover"/><span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">{index + 1}</span></button><div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100"><button onClick={() => moveFrame(index, -1)} disabled={index === 0} aria-label="Geser frame ke kiri" className="rounded bg-black/75 px-1.5 text-xs text-white disabled:opacity-30">‹</button><button onClick={() => moveFrame(index, 1)} disabled={index === frames.length - 1} aria-label="Geser frame ke kanan" className="rounded bg-black/75 px-1.5 text-xs text-white disabled:opacity-30">›</button><button onClick={() => removeFrame(index)} aria-label="Hapus frame" className="rounded bg-black/75 p-1 text-white"><X className="h-3 w-3"/></button></div></div>)}</div>
         </div>
-        <aside className="space-y-5 p-4 sm:p-6"><section><h3 className="flex items-center gap-2 font-medium text-white"><Film className="h-4 w-4 text-amber-300"/>Ekspor video putaran</h3><p className="mt-2 text-sm leading-6 text-gray-400">Buat video showroom WebM dari urutan foto. Setiap foto menjadi frame sudut kendaraan; hasilnya bukan model 3D volumetrik.</p>{videoUrl && <video src={videoUrl} controls className="mt-4 aspect-video w-full rounded-lg border border-white/10 bg-black"/>}{selected.spin_video_url && <a href={selected.spin_video_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs text-amber-200 underline">Buka video tersimpan</a>}<button disabled={generating || frames.length < 4} onClick={() => void createVideo()} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-semibold text-[#171614] disabled:cursor-not-allowed disabled:opacity-45">{generating ? <><Loader2 className="h-4 w-4 animate-spin"/>Membuat & menyimpan…</> : <><Clapperboard className="h-4 w-4"/>Buat video spin</>}</button>{videoUrl && <a href={videoUrl} download={`${selected.brand}-${selected.model}-spin360.webm`} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-gray-200"><Download className="h-4 w-4"/>Unduh WebM</a>}</section><div className="border-t border-white/10 pt-5"><div className="flex items-center justify-between gap-3"><div><h3 className="font-medium text-white">Simpan urutan foto</h3><p className="mt-1 text-xs text-gray-500">{saving ? savingProgress : 'Frame bisa dipakai lagi saat studio dibuka kembali.'}</p></div><button disabled={saving || frames.length < 4} onClick={() => void saveFrames()} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white disabled:opacity-40">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}Simpan</button></div><p className="mt-4 text-[11px] leading-5 text-gray-500">Untuk hasil spin yang mulus, ambil foto pada ketinggian dan jarak yang sama sambil mengelilingi mobil dengan interval sudut yang konsisten.</p></div></aside>
+        <aside className="space-y-5 p-4 sm:p-6"><AiSpinJobPanel selected={selected} jobs={catalog?.jobs ?? []} credits={(catalog?.wallet.monthly_credits ?? 0) + (catalog?.wallet.topup_credits ?? 0)} generating={generating} onGenerate={() => void generateModel()} onSync={(jobId) => void syncModelJob(jobId)} onSave={(jobId,makePublic) => void saveModelReview(jobId,makePublic)} vehicles={vehicles}/><section><h3 className="flex items-center gap-2 font-medium text-white"><Film className="h-4 w-4 text-amber-300"/>Ekspor video putaran</h3><p className="mt-2 text-sm leading-6 text-gray-400">Buat video showroom WebM dari urutan foto. Setiap foto menjadi frame sudut kendaraan; hasilnya bukan model 3D volumetrik.</p>{videoUrl && <video src={videoUrl} controls className="mt-4 aspect-video w-full rounded-lg border border-white/10 bg-black"/>}{selected.spin_video_url && <a href={selected.spin_video_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs text-amber-200 underline">Buka video tersimpan</a>}<button disabled={generating || frames.length < 4} onClick={() => void createVideo()} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-sm font-semibold text-[#171614] disabled:cursor-not-allowed disabled:opacity-45">{generating ? <><Loader2 className="h-4 w-4 animate-spin"/>Membuat & menyimpan…</> : <><Clapperboard className="h-4 w-4"/>Buat video spin</>}</button>{videoUrl && <a href={videoUrl} download={`${selected.brand}-${selected.model}-spin360.webm`} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-gray-200"><Download className="h-4 w-4"/>Unduh WebM</a>}</section><div className="border-t border-white/10 pt-5"><div className="flex items-center justify-between gap-3"><div><h3 className="font-medium text-white">Simpan urutan foto</h3><p className="mt-1 text-xs text-gray-500">{saving ? savingProgress : 'Frame bisa dipakai lagi saat studio dibuka kembali.'}</p></div><button disabled={saving || frames.length < 4} onClick={() => void saveFrames()} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white disabled:opacity-40">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}Simpan</button></div><p className="mt-4 text-[11px] leading-5 text-gray-500">Untuk hasil spin yang mulus, ambil foto pada ketinggian dan jarak yang sama sambil mengelilingi mobil dengan interval sudut yang konsisten.</p></div></aside>
       </div>}
     </section>
+  </div>;
+}
+
+function AiSpinJobPanel({ selected, jobs, credits, generating, onGenerate, onSync, onSave, vehicles }: {
+  selected: SpinVehicle | undefined;
+  jobs: SpinCatalog['jobs'];
+  credits: number;
+  generating: boolean;
+  onGenerate: () => void;
+  onSync: (jobId: string) => void;
+  onSave: (jobId: string, makePublic: boolean) => void;
+  vehicles: SpinVehicle[];
+}) {
+  return <div className="space-y-4">
+    <section className="rounded-xl border border-amber-300/15 bg-amber-300/[.04] p-4">
+      <h3 className="flex items-center gap-2 font-medium text-white"><Sparkles className="h-4 w-4 text-amber-300"/>Buat model 3D AI (GLB)</h3>
+      <p className="mt-2 text-xs leading-5 text-gray-400">AI membentuk model 3D perkiraan dari foto tampak depan, samping, dan belakang. Tinjau model sebelum disimpan atau ditayangkan.</p>
+      <button disabled={generating || !selected || selected.source!=='submission' || (selected.images?.length??0)<2 || credits<1} onClick={onGenerate} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-amber-300 px-3 py-2.5 text-sm font-semibold text-stone-900 disabled:opacity-40">
+        {generating?<><Loader2 className="h-4 w-4 animate-spin"/>Mengirim ke AI…</>:<><Sparkles className="h-4 w-4"/>Hasilkan model · 1 kredit</>}
+      </button>
+      {selected?.source!=='submission'&&<p className="mt-2 text-[11px] text-amber-200">Pilih pengajuan kendaraan untuk membuat model.</p>}
+      {credits<1&&<p className="mt-2 text-[11px] text-amber-200">Kredit habis. Pilih paket bulanan atau refill di atas.</p>}
+    </section>
+    {jobs.length>0&&<section className="space-y-3"><h3 className="font-medium text-white">Model AI & tinjauan</h3>{jobs.map((job)=>{
+      const vehicle=vehicles.find((item)=>item.id===job.submission_id&&item.source==='submission');
+      return <article key={job.id} className="rounded-xl border border-white/10 p-3">
+        <div className="flex items-start justify-between gap-2"><div><p className="text-sm font-medium text-white">{vehicle?`${vehicle.brand} ${vehicle.model}`:'Kendaraan'}</p><p className="mt-1 text-xs text-gray-400">{job.status==='processing'?'Sedang dibuat':job.status==='review'?'Siap ditinjau':job.status==='published'?'Disimpan untuk tayang':job.status==='failed'?'Gagal':'Menunggu'}{job.error_message?` · ${job.error_message}`:''}</p></div>{job.status==='processing'&&<button onClick={()=>onSync(job.id)} className="shrink-0 rounded-md border border-white/10 px-2 py-1 text-xs text-gray-300">Periksa</button>}</div>
+        {(job.status==='review'||job.status==='published')&&job.model_path&&<><VehicleModelViewer src={job.model_path} title={vehicle?`${vehicle.brand} ${vehicle.model}`:'Model kendaraan'} className="mt-3 h-52"/><p className="mt-2 text-[11px] text-gray-400">Kendaraan perlu disetujui admin agar model tampil di publik.</p><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={()=>onSave(job.id,false)} className="rounded-lg border border-white/10 px-2 py-2 text-xs text-gray-200">Simpan pribadi</button><button disabled={vehicle?.submissionStatus!=='APPROVED'} onClick={()=>onSave(job.id,true)} className="rounded-lg bg-amber-300 px-2 py-2 text-xs font-semibold text-stone-900 disabled:cursor-not-allowed disabled:opacity-40">Simpan & tayangkan</button></div></>}
+      </article>;
+    })}</section>}
   </div>;
 }
