@@ -1,5 +1,6 @@
 import { cloudinaryHelpers } from '../lib/cloudinary';
 import { supabase } from '../lib/supabase';
+import { applyDocumentWatermark } from './documentWatermark';
 
 // Simple logger for file uploads
 const logger = {
@@ -30,14 +31,18 @@ export const fileUploadService = {
   uploadImage: async (
     file: File,
     type: UploadType,
-    folder?: string
+    folder?: string,
+    userId?: string,
   ): Promise<UploadResult> => {
     try {
       // Determine folder based on type
       const uploadFolder = folder || getFolderByType(type);
 
-      // Upload to Cloudinary
-      const result = await cloudinaryHelpers.uploadImage(file, uploadFolder);
+      // Brand document-like user uploads before they leave the browser.
+      const uploadFile = type === 'profile-picture'
+        ? file
+        : await applyDocumentWatermark(file, userId ?? uploadFolder);
+      const result = await cloudinaryHelpers.uploadImage(uploadFile, uploadFolder);
 
       logger.info('Image uploaded to Cloudinary', {
         type,
@@ -130,14 +135,17 @@ export const fileUploadService = {
     documentType: 'ktp' | 'sim' | 'kk' | 'nib' | 'npwp' | 'akta'
   ): Promise<{ url: string; path: string }> => {
     try {
-      const path = `kyc/${userId}/${documentType}-${Date.now()}.${file.type.split('/')[1]}`;
+      const watermarked = await applyDocumentWatermark(file, userId);
+      const extension = watermarked.name.split('.').pop() || 'bin';
+      const path = `kyc/${userId}/${documentType}-${Date.now()}.${extension}`;
 
       // Upload to Supabase Storage (private bucket)
       const { data, error } = await supabase.storage
         .from('renmoku-private')
-        .upload(path, file, {
+        .upload(path, watermarked, {
           cacheControl: '3600',
           upsert: false,
+          contentType: watermarked.type,
         });
 
       if (error) throw error;
@@ -180,15 +188,17 @@ export const fileUploadService = {
         result = await fileUploadService.uploadImage(
           file,
           'chat-attachment',
-          `chats/${conversationId}`
+          `chats/${conversationId}`,
+          userId,
         );
       } else {
+        const watermarked = await applyDocumentWatermark(file, userId);
         // For non-image files, use Supabase Storage
-        const path = `chats/${conversationId}/${userId}-${Date.now()}-${file.name}`;
+        const path = `chats/${conversationId}/${userId}-${Date.now()}-${watermarked.name}`;
         
         const { data, error } = await supabase.storage
           .from('renmoku-private')
-          .upload(path, file);
+          .upload(path, watermarked, { contentType: watermarked.type });
 
         if (error) throw error;
 

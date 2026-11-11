@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import BookingChat from './BookingChat';
 import BookingContractViewer from './BookingContractViewer';
+import { applyDocumentWatermark } from '../services/documentWatermark';
 
 type OwnerTab = 'fleet' | 'bookings' | 'inspection' | 'revenue';
 
@@ -491,8 +492,9 @@ export function InspectionManagement() {
         const file = inspectionPhotos[photo.key];
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error(`Foto ${photo.label} harus JPG, PNG, atau WebP dengan ukuran maksimal 10 MB.`);
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${currentUser.id}/inspections/${inspectionId}/${photo.key}-${safeName}`;
-        const { error: uploadError } = await supabase.storage.from('owner-private').upload(path, file, { upsert: false, contentType: file.type });
+        const watermarked = await applyDocumentWatermark(file, currentUser.id);
+        const path = `${currentUser.id}/inspections/${inspectionId}/${photo.key}-${watermarked.name.replace(/[^a-zA-Z0-9._-]/g, '_') || safeName}`;
+        const { error: uploadError } = await supabase.storage.from('owner-private').upload(path, watermarked, { upsert: false, contentType: watermarked.type });
         if (uploadError) throw uploadError;
         uploaded[photo.key] = path;
       }

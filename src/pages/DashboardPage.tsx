@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
 import BookingChat from '../components/BookingChat';
 import BookingContractViewer from '../components/BookingContractViewer';
+import RenterIdentityForm, { RenterIdentity } from '../components/RenterIdentityForm';
+import { applyDocumentWatermark } from '../services/documentWatermark';
 
 type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
 type RenterBooking = { id: string; vehicleName: string; startDate: string; endDate: string; duration: number; totalPrice: number; dpAmount: number; dpPercentage: number; bookingStatus: string; pickupLocation: string; dropoffLocation: string };
@@ -32,8 +34,7 @@ export default function DashboardPage() {
   const [renterBookings, setRenterBookings] = useState<RenterBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsError, setBookingsError] = useState('');
-  const [profileName, setProfileName] = useState(currentUser?.name ?? '');
-  const [profilePhone, setProfilePhone] = useState(currentUser?.phone ?? '');
+  const [renterIdentity, setRenterIdentity] = useState<RenterIdentity>({ fullName: '', email: '', phone: '', ktpNumber: '', simNumber: '', address: '', latitude: null, longitude: null, files: {}, paths: {} });
   const [profileSaving, setProfileSaving] = useState(false);
   const dashboardBookings = isRenter ? renterBookings : mockBookings;
   const activeRenterBookings = renterBookings.filter((booking) => ['active', 'confirmed'].includes(booking.bookingStatus)).length;
@@ -72,12 +73,38 @@ export default function DashboardPage() {
 
   const saveRenterProfile = async () => {
     if (!currentUser) return;
+    if (!renterIdentity.fullName.trim() || !renterIdentity.phone.trim() || !/^\d{16}$/.test(renterIdentity.ktpNumber) || !renterIdentity.simNumber.trim() || renterIdentity.address.trim().length < 10) return toast.error('Lengkapi nama, telepon, NIK 16 digit, nomor SIM A, dan alamat domisili.');
+    const documentKeys: Array<keyof RenterIdentity['files']> = ['ktp','simA','familyCard','selfieKtp'];
+    if (documentKeys.some((key) => !renterIdentity.files[key] && !renterIdentity.paths[key])) return toast.error('Lengkapi KTP, SIM A, Kartu Keluarga, dan selfie memegang KTP.');
     setProfileSaving(true);
-    const { error } = await supabase.from('users').update({ full_name: profileName.trim(), phone: profilePhone.trim() }).eq('id', currentUser.id);
-    setProfileSaving(false);
-    if (error) return toast.error('Profil gagal diperbarui. Silakan coba kembali.');
-    setCurrentUser({ ...currentUser, name: profileName.trim(), phone: profilePhone.trim() });
-    toast.success('Profil berhasil diperbarui.');
+    try {
+      const upload = async (key: keyof RenterIdentity['files']) => {
+        const file = renterIdentity.files[key];
+        if (!file) return renterIdentity.paths[key];
+        const marked = await applyDocumentWatermark(file, currentUser.id);
+        const extension = marked.name.split('.').pop() || 'bin';
+        const path = `${currentUser.id}/kyc/${key}-${crypto.randomUUID()}.${extension}`;
+        const { data, error } = await supabase.storage.from('renter-kyc-private').upload(path, marked, { contentType: marked.type, upsert: false });
+        if (error) throw error;
+        return data.path;
+      };
+      const [ktpPath, simPath, familyPath, selfiePath] = await Promise.all(documentKeys.map((key) => upload(key)));
+      if (!ktpPath || !simPath || !familyPath || !selfiePath) throw new Error('Dokumen penyewa tidak lengkap.');
+      const { error: profileError } = await supabase.from('users').update({ full_name: renterIdentity.fullName.trim(), phone: renterIdentity.phone.trim() }).eq('id', currentUser.id);
+      if (profileError) throw profileError;
+      const { error: kycError } = await supabase.from('kyc_documents_individual').upsert({
+        user_id: currentUser.id, ktp_number: renterIdentity.ktpNumber, ktp_scan_url: ktpPath,
+        sim_class: 'A', sim_number: renterIdentity.simNumber, sim_scan_url: simPath, kk_scan_url: familyPath,
+        selfie_ktp_url: selfiePath, address: renterIdentity.address.trim(),
+        residential_latitude: renterIdentity.latitude, residential_longitude: renterIdentity.longitude,
+      }, { onConflict: 'user_id' });
+      if (kycError) throw kycError;
+      setCurrentUser({ ...currentUser, name: renterIdentity.fullName.trim(), phone: renterIdentity.phone.trim() });
+      setRenterIdentity((value) => ({ ...value, files: {}, paths: { ktp: ktpPath, simA: simPath, familyCard: familyPath, selfieKtp: selfiePath } }));
+      toast.success('Profil dan dokumen persyaratan tersimpan dengan watermark.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Profil dan dokumen gagal disimpan.');
+    } finally { setProfileSaving(false); }
   };
 
   // If not logged in, redirect to auth after all hooks have been called.
@@ -799,13 +826,12 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'profile' && isRenter && (
-          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
-            <div className="mb-6 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400/10 text-yellow-200"><User className="h-7 w-7"/></div><div><h2 className="text-xl font-semibold text-white">Profil penyewa</h2><p className="mt-1 text-sm text-gray-400">Perbarui nama dan nomor telepon akun Anda.</p></div></div>
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-8">
+            <div className="mb-6 flex items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400/10 text-yellow-200"><User className="h-7 w-7"/></div><div><h2 className="text-xl font-semibold text-white">Profil & persyaratan penyewa</h2><p className="mt-1 text-sm text-gray-400">Lengkapi data identitas, alamat domisili, GPS, dan dokumen untuk booking.</p></div></div>
             <form onSubmit={(event) => { event.preventDefault(); void saveRenterProfile(); }} className="space-y-5">
-              <label className="block text-sm text-gray-300">Nama lengkap<input required maxLength={120} value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-yellow-400/50"/></label>
-              <label className="block text-sm text-gray-300">Email<input disabled value={currentUser.email} className="mt-2 w-full rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-gray-500"/><span className="mt-1 block text-xs text-gray-500">Email akun tidak dapat diubah dari halaman ini.</span></label>
-              <label className="block text-sm text-gray-300">Nomor telepon<input type="tel" maxLength={20} value={profilePhone} onChange={(event) => setProfilePhone(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-yellow-400/50"/></label>
-              <button disabled={profileSaving} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black disabled:opacity-60">{profileSaving ? 'Menyimpan…' : 'Simpan profil'}</button>
+              <RenterIdentityForm value={renterIdentity} onChange={setRenterIdentity}/>
+              <div className="rounded-xl border border-yellow-400/15 bg-yellow-400/[.03] p-3 text-xs leading-5 text-gray-400">Dokumen identitas dan selfie akan diberi watermark Renmoku permanen sebelum tersimpan. Hanya Anda dan admin yang dapat membuka dokumen; pemilik rental hanya melihat dokumen kontrak yang memang terkait booking.</div>
+              <button disabled={profileSaving} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black disabled:opacity-60">{profileSaving ? 'Menyimpan profil & watermark…' : 'Simpan profil dan dokumen'}</button>
             </form>
           </motion.section>
         )}

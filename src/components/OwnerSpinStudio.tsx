@@ -2,6 +2,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Clapperboard, Download, Film, Loader2, MoveHorizontal, Play, Rotate3D, Save, Upload, X, QrCode, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { applyDocumentWatermark } from '../services/documentWatermark';
 import { cloudinaryHelpers } from '../lib/cloudinary';
 import { useAppStore } from '../stores/useAppStore';
 import VehicleModelViewer from './VehicleModelViewer';
@@ -150,7 +151,8 @@ export default function OwnerSpinStudio() {
         const frame = frames[index];
         if (frame.file || frame.sourcePath) {
           const file = frame.file ?? new File([await (await fetch(frame.src)).blob()], `frame-${index + 1}.jpg`, { type: 'image/jpeg' });
-          const result = await cloudinaryHelpers.uploadImage(file, `vehicles/${selected.id}/spin360`);
+          const watermarkedFrame = await applyDocumentWatermark(file, currentUser?.id ?? selected.id);
+          const result = await cloudinaryHelpers.uploadImage(watermarkedFrame, `vehicles/${selected.id}/spin360`);
           uploaded.push(result.url);
         } else uploaded.push(frame.src);
       }
@@ -267,12 +269,18 @@ export default function OwnerSpinStudio() {
     const orderUuid = crypto.randomUUID();
     const extension = proofFile.type === 'image/jpeg' ? 'jpg' : proofFile.type === 'image/png' ? 'png' : 'webp';
     const proofPath = `${currentUser.id}/${orderUuid}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from('ai-spin-payment-proofs').upload(proofPath, proofFile, { contentType: proofFile.type, upsert: false });
+    let watermarkedProof: File;
+    try { watermarkedProof = await applyDocumentWatermark(proofFile, currentUser.id); }
+    catch (error) { setCheckoutBusy(''); return toast.error(error instanceof Error ? error.message : 'Watermark bukti pembayaran gagal diproses.'); }
+    const proofBasePath = proofPath.replace(/\.[^.]+$/, '');
+    const proofExtension = watermarkedProof.name.split('.').pop() || extension;
+    const finalProofPath = `${proofBasePath}.${proofExtension}`;
+    const { error: uploadError } = await supabase.storage.from('ai-spin-payment-proofs').upload(finalProofPath, watermarkedProof, { contentType: watermarkedProof.type, upsert: false });
     if (uploadError) { setCheckoutBusy(''); return toast.error('Bukti pembayaran gagal diunggah.'); }
-    const { data, error: orderError } = await supabase.functions.invoke('spin-manual-order', { body: { packageId: pkg.id, orderUuid, proofPath } });
+    const { data, error: orderError } = await supabase.functions.invoke('spin-manual-order', { body: { packageId: pkg.id, orderUuid, proofPath: finalProofPath } });
     setCheckoutBusy('');
     if (orderError || data?.error) {
-      await supabase.storage.from('ai-spin-payment-proofs').remove([proofPath]);
+      await supabase.storage.from('ai-spin-payment-proofs').remove([finalProofPath]);
       return toast.error(data?.error ?? orderError?.message ?? 'Pesanan pembayaran gagal dibuat.');
     }
     setManualPackageId(''); setProofFile(null);

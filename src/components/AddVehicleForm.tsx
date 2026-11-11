@@ -3,6 +3,7 @@ import { Camera, CheckCircle2, FileCheck2, ImagePlus, Loader2, X } from 'lucide-
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAppStore } from '../stores/useAppStore';
+import { applyDocumentWatermark } from '../services/documentWatermark';
 
 const requiredPhotos = [
   { key: 'front', label: 'Tampak depan' },
@@ -86,7 +87,10 @@ export default function AddVehicleForm({ onClose, onSubmitted }: { onClose: () =
     setIsSaving(true);
     try {
       const upload = async (file: File, filename: string) => {
-        const { data, error } = await supabase.storage.from('owner-private').upload(`${folder}/${filename}`, file, { upsert: false, contentType: file.type });
+        const watermarked = await applyDocumentWatermark(file, currentUser.id);
+        const baseName = filename.replace(/\.[^.]+$/, '');
+        const extension = watermarked.name.split('.').pop() || 'bin';
+        const { data, error } = await supabase.storage.from('owner-private').upload(`${folder}/${baseName}.${extension}`, watermarked, { upsert: false, contentType: watermarked.type });
         if (error) throw error;
         return data.path;
       };

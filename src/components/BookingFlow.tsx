@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import RenterIdentityForm, { RenterIdentity } from './RenterIdentityForm';
 import DigitalSignaturePad from './DigitalSignaturePad';
+import { applyDocumentWatermark } from '../services/documentWatermark';
 
 export default function BookingFlow() {
   const { selectedVehicle, setCurrentPage, currentUser, setCurrentUser } = useAppStore();
@@ -129,7 +130,11 @@ export default function BookingFlow() {
       if (!reusableFeeId && !bookingFeeProof) { toast.error('Unggah bukti pembayaran biaya booking Rp25.000.'); return; }
       setSubmitting(true);
       const uploadPrivate = async (file: File, path: string) => {
-        const { data, error } = await supabase.storage.from('renter-kyc-private').upload(path, file, { contentType: file.type, upsert: false });
+        const watermarked = await applyDocumentWatermark(file, currentUser.id);
+        const filename = path.replace(/\.[^.]+$/, '');
+        const extension = watermarked.name.split('.').pop() || 'bin';
+        const finalPath = `${filename}.${extension}`;
+        const { data, error } = await supabase.storage.from('renter-kyc-private').upload(finalPath, watermarked, { contentType: watermarked.type, upsert: false });
         if (error) throw error;
         return data.path;
       };
@@ -152,7 +157,7 @@ export default function BookingFlow() {
         setCurrentUser({ ...currentUser, name: identity.fullName.trim(), phone: identity.phone.trim() });
         const { error: kycError } = await supabase.from('kyc_documents_individual').upsert({
           user_id: currentUser.id, ktp_number: identity.ktpNumber, ktp_scan_url: ktpPath,
-          sim_number: identity.simNumber, sim_scan_url: simPath, kk_scan_url: familyPath, selfie_ktp_url: selfiePath,
+          sim_class: 'A', sim_number: identity.simNumber, sim_scan_url: simPath, kk_scan_url: familyPath, selfie_ktp_url: selfiePath,
           address: identity.address.trim(), residential_latitude: identity.latitude, residential_longitude: identity.longitude,
         }, { onConflict: 'user_id' });
         if (kycError) throw kycError;
@@ -164,7 +169,11 @@ export default function BookingFlow() {
         if (!reusableFeeId && bookingFeeProof) {
           const ext = bookingFeeProof.type === 'image/png' ? 'png' : bookingFeeProof.type === 'image/webp' ? 'webp' : 'jpg';
           proofPath = `${currentUser.id}/${crypto.randomUUID()}.${ext}`;
-          const { error: uploadError } = await supabase.storage.from('booking-fee-proofs').upload(proofPath, bookingFeeProof, { contentType: bookingFeeProof.type });
+          const watermarkedProof = await applyDocumentWatermark(bookingFeeProof, currentUser.id);
+          const proofBasePath = proofPath.replace(/\.[^.]+$/, '');
+          const proofExtension = watermarkedProof.name.split('.').pop() || 'jpg';
+          proofPath = `${proofBasePath}.${proofExtension}`;
+          const { error: uploadError } = await supabase.storage.from('booking-fee-proofs').upload(proofPath, watermarkedProof, { contentType: watermarkedProof.type });
           if (uploadError) throw uploadError;
         }
         const payload = {
