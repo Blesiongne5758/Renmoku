@@ -218,6 +218,40 @@ export default function BookingFlow() {
       }
     }
 
+    if (currentStep === 2) {
+      if (!identity.fullName.trim() || !identity.phone.trim() || !/^\d{16}$/.test(identity.ktpNumber) || !identity.simNumber.trim() || identity.address.trim().length < 10) {
+        toast.error('Lengkapi nama, telepon, NIK 16 digit, SIM A, dan alamat domisili minimal 10 karakter.');
+        return;
+      }
+      const requiredDocuments: Array<keyof RenterIdentity['files']> = ['ktp', 'simA', 'familyCard', 'selfieKtp'];
+      if (requiredDocuments.some((key) => !identity.files[key] && !identity.paths[key])) {
+        toast.error('Lengkapi KTP, SIM A, Kartu Keluarga, dan selfie memegang KTP.');
+        return;
+      }
+
+      // Automatically sync profile and documents to user profile
+      if (currentUser?.id) {
+        void supabase.from('users').update({
+          full_name: identity.fullName.trim(),
+          phone: identity.phone.trim(),
+        }).eq('id', currentUser.id);
+
+        void supabase.from('kyc_documents_individual').upsert({
+          user_id: currentUser.id,
+          ktp_number: identity.ktpNumber,
+          sim_class: 'A',
+          sim_number: identity.simNumber,
+          address: identity.address.trim(),
+          residential_latitude: identity.latitude,
+          residential_longitude: identity.longitude,
+          ...(identity.paths.ktp ? { ktp_scan_url: identity.paths.ktp } : {}),
+          ...(identity.paths.simA ? { sim_scan_url: identity.paths.simA } : {}),
+          ...(identity.paths.familyCard ? { kk_scan_url: identity.paths.familyCard } : {}),
+          ...(identity.paths.selfieKtp ? { selfie_ktp_url: identity.paths.selfieKtp } : {}),
+        }, { onConflict: 'user_id' });
+      }
+    }
+
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     } else {
