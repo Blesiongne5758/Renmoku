@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Car, Calendar, Users, MapPin, CreditCard, CheckCircle, ArrowRight, ArrowLeft, AlertCircle, Shield, Clock } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { useBookingStore } from '../store/useBookingStore';
@@ -64,6 +64,93 @@ export default function BookingFlow() {
     }
   }, [selectedVehicle]);
 
+  const startDateInputRef = useRef<HTMLInputElement>(null);
+  const endDateInputRef = useRef<HTMLInputElement>(null);
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  // Format date to Indonesian readable format (e.g., "Rabu, 11 Nov 2026")
+  const formatDateIndo = (dateStr: string | null) => {
+    if (!dateStr) return 'Pilih tanggal';
+    try {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      if (!year || !month || !day) return dateStr;
+      const d = new Date(year, month - 1, day);
+      return new Intl.DateTimeFormat('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(d);
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Initialize sensible default dates and duration if not already set
+  useEffect(() => {
+    const today = new Date();
+    const todayFormatted = today.toISOString().split('T')[0];
+    const defaultEnd = new Date(today);
+    defaultEnd.setDate(today.getDate() + (durationType === 'MONTHLY' ? 30 : durationType === 'WEEKLY' ? 7 : 1));
+    const endFormatted = defaultEnd.toISOString().split('T')[0];
+
+    if (!durationType) {
+      setDuration('DAILY', withDriver);
+    }
+    if (!startDate && !endDate) {
+      setDates(todayFormatted, endFormatted);
+    } else if (startDate && !endDate) {
+      setDates(startDate, endFormatted);
+    }
+  }, []);
+
+  const handleSelectDurationType = (type: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    invalidateSignature();
+    setDuration(type, withDriver);
+    const baseStart = startDate ? new Date(startDate) : new Date();
+    const targetEnd = new Date(baseStart);
+    if (type === 'DAILY') {
+      targetEnd.setDate(baseStart.getDate() + 1);
+    } else if (type === 'WEEKLY') {
+      targetEnd.setDate(baseStart.getDate() + 7);
+    } else if (type === 'MONTHLY') {
+      targetEnd.setDate(baseStart.getDate() + 30);
+    }
+    const newStartStr = startDate || baseStart.toISOString().split('T')[0];
+    const newEndStr = targetEnd.toISOString().split('T')[0];
+    setDates(newStartStr, newEndStr);
+  };
+
+  const handleStartDateChange = (val: string) => {
+    invalidateSignature();
+    if (!val) {
+      setDates('', endDate || '');
+      return;
+    }
+    if (!endDate || new Date(endDate) <= new Date(val)) {
+      const s = new Date(val);
+      const e = new Date(s);
+      const daysToAdd = durationType === 'MONTHLY' ? 30 : durationType === 'WEEKLY' ? 7 : 1;
+      e.setDate(s.getDate() + daysToAdd);
+      setDates(val, e.toISOString().split('T')[0]);
+    } else {
+      setDates(val, endDate);
+    }
+  };
+
+  const handleEndDateChange = (val: string) => {
+    invalidateSignature();
+    if (!val) {
+      setDates(startDate || '', '');
+      return;
+    }
+    if (startDate && new Date(val) < new Date(startDate)) {
+      setDates(val, val);
+    } else {
+      setDates(startDate || '', val);
+    }
+  };
+
   // Calculate pricing whenever dates or duration changes
   useEffect(() => {
     if (selectedVehicle && durationType && startDate && endDate) {
@@ -101,9 +188,9 @@ export default function BookingFlow() {
     { id: 5, title: 'Konfirmasi', icon: CheckCircle },
   ];
 
-  // Calculate days for display
+  // Calculate days for display (minimum 1 day)
   const days = startDate && endDate 
-    ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))
     : 1;
 
   const createContractSnapshot = () => JSON.stringify({
@@ -116,6 +203,21 @@ export default function BookingFlow() {
   const invalidateSignature = () => { setSignatureDataUrl(''); setSignedContractSnapshot(''); };
 
   const handleNext = async () => {
+    if (currentStep === 1) {
+      if (!durationType) {
+        toast.error('Pilih tipe durasi sewa terlebih dahulu.');
+        return;
+      }
+      if (!startDate || !endDate) {
+        toast.error('Pilih tanggal mulai dan tanggal selesai sewa.');
+        return;
+      }
+      if (new Date(endDate) < new Date(startDate)) {
+        toast.error('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.');
+        return;
+      }
+    }
+
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -313,7 +415,7 @@ export default function BookingFlow() {
                             key={opt.id}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => { invalidateSignature(); setDuration(opt.id as any, withDriver); }}
+                            onClick={() => handleSelectDurationType(opt.id as any)}
                             className={`p-4 rounded-xl text-left transition-all ${
                               durationType === opt.id
                                 ? 'neu-gold'
@@ -363,33 +465,100 @@ export default function BookingFlow() {
                     </div>
 
                     {/* Dates */}
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase tracking-wider mb-3 block">Tanggal Sewa</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Tanggal Mulai</label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
-                            <input
-                              type="date"
-                              value={startDate || ''}
-                              onChange={(e) => { invalidateSignature(); setDates(e.target.value, endDate || ''); }}
-                              className="input-luxury pl-10 [color-scheme:dark]"
-                            />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-gold-300/90 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gold-400" />
+                          Tanggal Sewa Kendaraan
+                        </label>
+                        <span className="text-xs text-gray-300 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full font-medium">
+                          {days} Hari Total
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Tanggal Mulai Card */}
+                        <div
+                          onClick={() => startDateInputRef.current?.showPicker?.()}
+                          className="group relative rounded-xl border border-gold-500/25 bg-stone-900/80 hover:bg-stone-900 hover:border-gold-400/50 focus-within:border-gold-400 focus-within:ring-1 focus-within:ring-gold-400/30 p-3.5 transition-all cursor-pointer shadow-sm"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-medium text-gray-400 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              Tanggal Mulai (Pick-up)
+                            </span>
+                            <span className="text-[10px] uppercase font-semibold tracking-wider text-gold-400/90 bg-gold-400/10 px-2 py-0.5 rounded">
+                              Mulai
+                            </span>
                           </div>
+
+                          <p className="text-sm font-semibold text-white tracking-wide">
+                            {formatDateIndo(startDate)}
+                          </p>
+
+                          <input
+                            ref={startDateInputRef}
+                            type="date"
+                            min={todayStr}
+                            value={startDate || ''}
+                            onChange={(e) => handleStartDateChange(e.target.value)}
+                            className="mt-2.5 w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-200 outline-none hover:border-gold-500/40 focus:border-gold-400 cursor-pointer [color-scheme:dark] transition-colors"
+                          />
                         </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Tanggal Selesai</label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
-                            <input
-                              type="date"
-                              value={endDate || ''}
-                              onChange={(e) => { invalidateSignature(); setDates(startDate || '', e.target.value); }}
-                              className="input-luxury pl-10 [color-scheme:dark]"
-                            />
+
+                        {/* Tanggal Selesai Card */}
+                        <div
+                          onClick={() => endDateInputRef.current?.showPicker?.()}
+                          className="group relative rounded-xl border border-gold-500/25 bg-stone-900/80 hover:bg-stone-900 hover:border-gold-400/50 focus-within:border-gold-400 focus-within:ring-1 focus-within:ring-gold-400/30 p-3.5 transition-all cursor-pointer shadow-sm"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-medium text-gray-400 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gold-400"></span>
+                              Tanggal Selesai (Drop-off)
+                            </span>
+                            <span className="text-[10px] uppercase font-semibold tracking-wider text-gold-400/90 bg-gold-400/10 px-2 py-0.5 rounded">
+                              Selesai
+                            </span>
                           </div>
+
+                          <p className="text-sm font-semibold text-white tracking-wide">
+                            {formatDateIndo(endDate)}
+                          </p>
+
+                          <input
+                            ref={endDateInputRef}
+                            type="date"
+                            min={startDate || todayStr}
+                            value={endDate || ''}
+                            onChange={(e) => handleEndDateChange(e.target.value)}
+                            className="mt-2.5 w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-200 outline-none hover:border-gold-500/40 focus:border-gold-400 cursor-pointer [color-scheme:dark] transition-colors"
+                          />
                         </div>
+                      </div>
+
+                      {/* Duration highlight badge and guidance */}
+                      <div className="rounded-xl border border-gold-500/20 bg-gradient-to-r from-gold-500/10 via-gold-500/5 to-transparent p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gold-400 shrink-0" />
+                          <span className="text-xs text-gray-300">
+                            Rentang sewa: <strong className="text-gold-300 font-semibold">{days} hari</strong> ({formatDateIndo(startDate)} — {formatDateIndo(endDate)})
+                          </span>
+                        </div>
+                        {durationType === 'WEEKLY' && days < 7 && (
+                          <span className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full self-start sm:self-auto font-medium">
+                            Min. 7 hari untuk paket mingguan
+                          </span>
+                        )}
+                        {durationType === 'MONTHLY' && days < 30 && (
+                          <span className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full self-start sm:self-auto font-medium">
+                            Min. 30 hari untuk paket bulanan
+                          </span>
+                        )}
+                        {durationType === 'DAILY' && days >= 7 && (
+                          <span className="text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full self-start sm:self-auto font-medium">
+                            Saran: Paket Mingguan lebih hemat
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

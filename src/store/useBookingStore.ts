@@ -103,18 +103,22 @@ export const useBookingStore = create<BookingState>((set, get) => ({
     
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.max(1, isNaN(diff) ? 1 : diff);
     
     let basePrice = 0;
+    const safeDaily = dailyPrice || 0;
+    const safeWeekly = weeklyPrice || safeDaily * 7 * 0.85;
+    const safeMonthly = monthlyPrice || safeDaily * 30 * 0.7;
     
     if (durationType === 'DAILY') {
-      basePrice = days * dailyPrice;
+      basePrice = days * safeDaily;
     } else if (durationType === 'WEEKLY') {
-      const weeks = Math.ceil(days / 7);
-      basePrice = weeks * weeklyPrice;
+      const weeks = Math.max(1, Math.ceil(days / 7));
+      basePrice = weeks * safeWeekly;
     } else if (durationType === 'MONTHLY') {
-      const months = Math.ceil(days / 30);
-      basePrice = months * monthlyPrice;
+      const months = Math.max(1, Math.ceil(days / 30));
+      basePrice = months * safeMonthly;
     }
     
     const driverCost = withDriver ? days * 150000 : 0;

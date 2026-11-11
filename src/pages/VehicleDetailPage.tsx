@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import { useBookingStore } from '../store/useBookingStore';
 import { vehicles, formatCurrency } from '../data/mockData';
 import VehicleModelViewer from '../components/VehicleModelViewer';
 
@@ -78,6 +79,14 @@ export default function VehicleDetailPage() {
   };
 
   const handleBookNow = () => {
+    useBookingStore.getState().setVehicle(vehicle.id);
+    useBookingStore.getState().setDuration(
+      duration === 'daily' ? 'DAILY' : duration === 'weekly' ? 'WEEKLY' : 'MONTHLY',
+      rentalType === 'with_driver'
+    );
+    if (startDate && endDate) {
+      useBookingStore.getState().setDates(startDate, endDate);
+    }
     setCurrentPage('booking');
   };
 
@@ -392,9 +401,10 @@ export default function VehicleDetailPage() {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                     <input
                       type="date"
+                      min={new Date().toISOString().split('T')[0]}
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="input-luxury pl-10 [color-scheme:dark]"
+                      className="input-luxury pl-10 [color-scheme:dark] rounded-xl cursor-pointer"
                     />
                   </div>
                 </div>
@@ -404,9 +414,10 @@ export default function VehicleDetailPage() {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
                     <input
                       type="date"
+                      min={startDate || new Date().toISOString().split('T')[0]}
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="input-luxury pl-10 [color-scheme:dark]"
+                      className="input-luxury pl-10 [color-scheme:dark] rounded-xl cursor-pointer"
                     />
                   </div>
                 </div>
