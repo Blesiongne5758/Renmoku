@@ -229,26 +229,50 @@ export default function BookingFlow() {
         return;
       }
 
-      // Automatically sync profile and documents to user profile
+      // Automatically sync profile and documents to user profile safely
       if (currentUser?.id) {
-        void supabase.from('users').update({
-          full_name: identity.fullName.trim(),
-          phone: identity.phone.trim(),
-        }).eq('id', currentUser.id);
+        try {
+          const finalPaths = { ...identity.paths };
+          for (const docKey of requiredDocuments) {
+            if (!finalPaths[docKey] && identity.files[docKey]) {
+              const file = identity.files[docKey]!;
+              const watermarked = await applyDocumentWatermark(file, currentUser.id);
+              const ext = watermarked.name.split('.').pop() || 'jpg';
+              const storagePath = `${currentUser.id}/kyc/${docKey}-${crypto.randomUUID()}.${ext}`;
+              const { error: upErr } = await supabase.storage
+                .from('renter-kyc-private')
+                .upload(storagePath, watermarked, { contentType: watermarked.type, upsert: false });
+              if (!upErr) {
+                finalPaths[docKey] = storagePath;
+              }
+            }
+          }
 
-        void supabase.from('kyc_documents_individual').upsert({
-          user_id: currentUser.id,
-          ktp_number: identity.ktpNumber,
-          sim_class: 'A',
-          sim_number: identity.simNumber,
-          address: identity.address.trim(),
-          residential_latitude: identity.latitude,
-          residential_longitude: identity.longitude,
-          ...(identity.paths.ktp ? { ktp_scan_url: identity.paths.ktp } : {}),
-          ...(identity.paths.simA ? { sim_scan_url: identity.paths.simA } : {}),
-          ...(identity.paths.familyCard ? { kk_scan_url: identity.paths.familyCard } : {}),
-          ...(identity.paths.selfieKtp ? { selfie_ktp_url: identity.paths.selfieKtp } : {}),
-        }, { onConflict: 'user_id' });
+          setIdentity((prev) => ({ ...prev, paths: finalPaths, files: {} }));
+
+          await supabase.from('users').update({
+            full_name: identity.fullName.trim(),
+            phone: identity.phone.trim(),
+          }).eq('id', currentUser.id);
+
+          if (finalPaths.ktp && finalPaths.simA && finalPaths.familyCard) {
+            await supabase.from('kyc_documents_individual').upsert({
+              user_id: currentUser.id,
+              ktp_number: identity.ktpNumber.trim(),
+              sim_class: 'A',
+              sim_number: identity.simNumber.trim(),
+              address: identity.address.trim(),
+              residential_latitude: identity.latitude,
+              residential_longitude: identity.longitude,
+              ktp_scan_url: finalPaths.ktp,
+              sim_scan_url: finalPaths.simA,
+              kk_scan_url: finalPaths.familyCard,
+              selfie_ktp_url: finalPaths.selfieKtp || null,
+            }, { onConflict: 'user_id' });
+          }
+        } catch (syncErr) {
+          console.warn('Sync profile step 2 warning:', syncErr);
+        }
       }
     }
 

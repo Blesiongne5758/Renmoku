@@ -113,7 +113,7 @@ export default function RenterIdentityForm({ value, onChange }: { value: RenterI
     patchValue({ [field]: text } as Pick<RenterIdentity, typeof field>);
   };
 
-  // Upload and immediately sync document to user profile
+  // Upload and immediately sync document to user profile safely
   const syncDocumentToProfile = async (key: IdentityDocumentKey, file: File) => {
     patchValue({ files: { ...value.files, [key]: file } });
     if (!user?.id) return;
@@ -136,22 +136,7 @@ export default function RenterIdentityForm({ value, onChange }: { value: RenterI
         selfieKtp: 'selfie_ktp_url',
       };
 
-      // Automatically update/fill renter profile in kyc_documents_individual
-      const { error: kycError } = await supabase.from('kyc_documents_individual').upsert(
-        {
-          user_id: user.id,
-          [columnMap[key]]: storagePath,
-          ...(value.ktpNumber ? { ktp_number: value.ktpNumber } : {}),
-          ...(value.simNumber ? { sim_number: value.simNumber, sim_class: 'A' } : {}),
-          ...(value.address ? { address: value.address.trim() } : {}),
-          ...(value.latitude !== null ? { residential_latitude: value.latitude } : {}),
-          ...(value.longitude !== null ? { residential_longitude: value.longitude } : {}),
-        },
-        { onConflict: 'user_id' }
-      );
-      if (kycError) throw kycError;
-
-      // Update paths in value so it reflects immediately as persisted
+      // Update local paths and clear pending file for this key
       const nextPaths = { ...value.paths, [key]: storagePath };
       const nextFiles = { ...value.files };
       delete nextFiles[key];
@@ -161,11 +146,61 @@ export default function RenterIdentityForm({ value, onChange }: { value: RenterI
         files: nextFiles,
       });
 
+      // Check if user already has an existing KYC record in table
+      const { data: existingKyc } = await supabase
+        .from('kyc_documents_individual')
+        .select('id, ktp_scan_url, sim_scan_url, kk_scan_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingKyc) {
+        // If row exists, update the specific document column without violating any NOT NULL constraints
+        await supabase
+          .from('kyc_documents_individual')
+          .update({
+            [columnMap[key]]: storagePath,
+            ...(value.ktpNumber ? { ktp_number: value.ktpNumber } : {}),
+            ...(value.simNumber ? { sim_number: value.simNumber } : {}),
+            ...(value.address ? { address: value.address.trim() } : {}),
+            ...(value.latitude !== null ? { residential_latitude: value.latitude } : {}),
+            ...(value.longitude !== null ? { residential_longitude: value.longitude } : {}),
+          })
+          .eq('user_id', user.id);
+      } else {
+        // If row does not exist yet, only upsert if all required NOT NULL columns are present
+        const hasAllRequired =
+          Boolean(nextPaths.ktp) &&
+          Boolean(nextPaths.simA) &&
+          Boolean(nextPaths.familyCard) &&
+          Boolean(value.ktpNumber?.trim()) &&
+          Boolean(value.simNumber?.trim()) &&
+          Boolean(value.address?.trim());
+
+        if (hasAllRequired) {
+          await supabase.from('kyc_documents_individual').upsert(
+            {
+              user_id: user.id,
+              ktp_number: value.ktpNumber.trim(),
+              sim_class: 'A',
+              sim_number: value.simNumber.trim(),
+              address: value.address.trim(),
+              residential_latitude: value.latitude,
+              residential_longitude: value.longitude,
+              ktp_scan_url: nextPaths.ktp!,
+              sim_scan_url: nextPaths.simA!,
+              kk_scan_url: nextPaths.familyCard!,
+              selfie_ktp_url: nextPaths.selfieKtp || null,
+            },
+            { onConflict: 'user_id' }
+          );
+        }
+      }
+
       const fieldLabel = documentFields.find((item) => item.key === key)?.label || key;
-      toast.success(`${fieldLabel} berhasil tersimpan ke profil Anda.`);
+      toast.success(`${fieldLabel} berhasil diunggah dengan watermark.`);
     } catch (err: any) {
-      console.error('Gagal sinkronisasi dokumen ke profil:', err);
-      toast.warning('Dokumen dipilih, namun penyimpanan instan ke profil gagal: ' + (err.message || ''));
+      console.error('Gagal mengunggah dokumen:', err);
+      toast.error('Gagal mengunggah dokumen: ' + (err.message || ''));
     } finally {
       setUploadingKeys((prev) => ({ ...prev, [key]: false }));
     }
