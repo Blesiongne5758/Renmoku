@@ -145,6 +145,7 @@ export const ROUTE_PROTECTION = {
   '/admin': ['ADMIN'],
   '/admin-gps-settings': ['ADMIN'],
   '/admin-vehicle-review': ['ADMIN'],
+  '/vehicle-live-map': ['OWNER', 'ADMIN', 'RENTER'],
   '/dashboard/owner': ['OWNER', 'ADMIN'],
   '/dashboard/renter': ['RENTER', 'ADMIN'],
   '/dashboard': ['RENTER', 'OWNER', 'ADMIN'],

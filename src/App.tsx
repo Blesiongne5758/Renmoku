@@ -22,6 +22,7 @@ import PaymentFailedPage from './pages/PaymentFailedPage';
 import AdminGPSSettings from './pages/admin/AdminGPSSettings';
 import VehicleMonitoring from './pages/owner/VehicleMonitoring';
 import AdminVehicleReviewPage from './pages/admin/AdminVehicleReviewPage';
+import SingleVehicleLiveMapPage from './pages/owner/SingleVehicleLiveMapPage';
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
@@ -30,10 +31,19 @@ import { canAccessRoute } from './lib/auth';
 function App() {
   const { currentPage, currentUser, restoreSession } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
-  const isDashboardShell = currentPage === 'dashboard' || currentPage === 'admin-gps-settings' || currentPage === 'admin-vehicle-review' || currentPage === 'vehicle-monitoring';
+  const isDashboardShell = currentPage === 'dashboard' || currentPage === 'admin-gps-settings' || currentPage === 'admin-vehicle-review' || currentPage === 'vehicle-monitoring' || currentPage === 'vehicle-live-map';
 
   useEffect(() => {
     void restoreSession();
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pageParam = urlParams.get('page');
+      if (pageParam === 'vehicle-live-map') {
+        useAppStore.getState().setCurrentPage('vehicle-live-map');
+      }
+    } catch {
+      // ignore
+    }
   }, [restoreSession]);
 
   const renderPage = () => {
@@ -80,6 +90,21 @@ function App() {
         return <AdminGPSSettings />;
       case 'admin-vehicle-review':
         return <AdminVehicleReviewPage />;
+      case 'vehicle-live-map': {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetVehicleId = urlParams.get('id') || urlParams.get('vehicleId') || useAppStore.getState().selectedVehicle?.id || 'vehicle-1';
+        const targetVehicleName = useAppStore.getState().selectedVehicle?.name || 'Kendaraan Armada';
+        return (
+          <SingleVehicleLiveMapPage
+            vehicleId={targetVehicleId}
+            vehicleName={targetVehicleName}
+            onBack={() => {
+              useAppStore.getState().setCurrentPage('dashboard');
+              useAppStore.getState().setOwnerSection('gps');
+            }}
+          />
+        );
+      }
       case 'vehicle-monitoring':
         // Get vehicle info from store or use default
         const vehicleId = useAppStore.getState().selectedVehicle?.id || 'vehicle-1';
