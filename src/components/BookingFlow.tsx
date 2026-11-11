@@ -376,13 +376,13 @@ export default function BookingFlow() {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-16 bg-gradient-luxury">
+    <div className="min-h-screen pt-16 pb-28 sm:pt-20 sm:pb-32 bg-gradient-luxury">
       <div className="mx-auto max-w-5xl px-5 sm:px-8 lg:px-10">
         {/* Progress Steps */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
           {/* Progress Bar */}
           <div className="mb-4">
@@ -648,26 +648,26 @@ export default function BookingFlow() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs text-gray-400 mb-1.5 block">Kota Asal</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                        <div className="relative flex items-center">
+                          <MapPin className="absolute left-3.5 w-4 h-4 text-gold-400/70 pointer-events-none z-10" />
                           <input
                             type="text"
                             value={tripPlan.origin}
                             onChange={(e) => { invalidateSignature(); setTripPlan({ origin: e.target.value }); }}
-                            className="input-luxury pl-10"
+                            className="input-luxury !pl-11 rounded-xl text-sm"
                             placeholder="Kota asal"
                           />
                         </div>
                       </div>
                       <div>
                         <label className="text-xs text-gray-400 mb-1.5 block">Kota Tujuan</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                        <div className="relative flex items-center">
+                          <MapPin className="absolute left-3.5 w-4 h-4 text-gold-400/70 pointer-events-none z-10" />
                           <input
                             type="text"
                             value={tripPlan.destination}
                             onChange={(e) => { invalidateSignature(); setTripPlan({ destination: e.target.value }); }}
-                            className="input-luxury pl-10"
+                            className="input-luxury !pl-11 rounded-xl text-sm"
                             placeholder="Kota tujuan"
                           />
                         </div>
@@ -677,13 +677,13 @@ export default function BookingFlow() {
                         <select
                           value={tripPlan.purpose}
                           onChange={(e) => { invalidateSignature(); setTripPlan({ purpose: e.target.value }); }}
-                          className="input-luxury"
+                          className="input-luxury rounded-xl text-sm cursor-pointer bg-stone-900 [color-scheme:dark]"
                         >
-                          <option value="">Pilih tujuan</option>
-                          <option value="bisnis">Bisnis</option>
-                          <option value="wisata">Wisata</option>
-                          <option value="keluarga">Keluarga</option>
-                          <option value="lainnya">Lainnya</option>
+                          <option value="" className="bg-stone-900 text-gray-400">Pilih tujuan</option>
+                          <option value="bisnis" className="bg-stone-900 text-white">Bisnis</option>
+                          <option value="wisata" className="bg-stone-900 text-white">Wisata</option>
+                          <option value="keluarga" className="bg-stone-900 text-white">Keluarga</option>
+                          <option value="lainnya" className="bg-stone-900 text-white">Lainnya</option>
                         </select>
                       </div>
                     </div>

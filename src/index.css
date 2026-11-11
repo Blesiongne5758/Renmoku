@@ -459,13 +459,21 @@ h6 {
 .input-luxury {
   background: var(--color-obsidian-light);
   border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 0;
-  padding: 16px 20px;
+  border-radius: 0.75rem;
+  padding: 14px 18px;
   color: var(--color-ivory);
   font-size: 14px;
   letter-spacing: 0.05em;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   width: 100%;
+}
+
+.input-luxury.pl-10,
+.input-luxury.pl-11,
+.input-luxury.pl-12,
+.input-luxury.\!pl-11,
+.input-luxury.has-icon {
+  padding-left: 44px !important;
 }
 
 .input-luxury::placeholder {

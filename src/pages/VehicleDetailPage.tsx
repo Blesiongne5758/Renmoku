@@ -398,26 +398,26 @@ export default function VehicleDetailPage() {
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Tanggal Mulai</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/70 pointer-events-none z-10" />
                     <input
                       type="date"
                       min={new Date().toISOString().split('T')[0]}
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="input-luxury pl-10 [color-scheme:dark] rounded-xl cursor-pointer"
+                      className="input-luxury !pl-11 [color-scheme:dark] rounded-xl cursor-pointer"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Tanggal Selesai</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/50 z-10" />
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gold-400/70 pointer-events-none z-10" />
                     <input
                       type="date"
                       min={startDate || new Date().toISOString().split('T')[0]}
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="input-luxury pl-10 [color-scheme:dark] rounded-xl cursor-pointer"
+                      className="input-luxury !pl-11 [color-scheme:dark] rounded-xl cursor-pointer"
                     />
                   </div>
                 </div>
