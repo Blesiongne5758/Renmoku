@@ -348,10 +348,16 @@ export default function BookingFlow() {
           p_booking: payload, p_proof_path: proofPath, p_reuse_transaction_id: reusableFeeId || null,
         });
         if (submitError) throw submitError;
-      } catch (error) {
+      } catch (error: any) {
         // Keep newly uploaded identity files: the KYC profile may already reference them.
         setSubmitting(false);
-        toast.error(error instanceof Error && error.message.includes('vehicle_unavailable') ? 'Kendaraan tidak lagi tersedia. Pilih kendaraan lain.' : error instanceof Error && error.message ? `Data profil atau booking gagal disimpan: ${error.message}` : 'Data profil atau booking gagal disimpan.');
+        const errMessage = error?.message || error?.error_description || error?.details || (typeof error === 'string' ? error : '');
+        const finalMsg = errMessage.includes('vehicle_unavailable')
+          ? 'Kendaraan tidak lagi tersedia. Pilih kendaraan lain.'
+          : errMessage
+            ? `Data profil atau booking gagal disimpan: ${errMessage}`
+            : 'Data profil atau booking gagal disimpan.';
+        toast.error(finalMsg);
         return;
       }
       setSubmitting(false);
