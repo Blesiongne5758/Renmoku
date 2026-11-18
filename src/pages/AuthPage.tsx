@@ -45,7 +45,12 @@ export default function AuthPage() {
         setCurrentPage('dashboard');
       }, 1000);
     } else {
-      setError('Email atau password salah. Periksa kembali data yang Anda masukkan.');
+      const authErr = useAppStore.getState().authError;
+      if (authErr && (authErr.toLowerCase().includes('email not confirmed') || authErr.toLowerCase().includes('email_not_confirmed'))) {
+        setError('Email belum dikonfirmasi. Buka kotak masuk email gupistar.qris@gmail.com dan klik link konfirmasi, atau konfirmasi di menu Authentication > Users pada Supabase Dashboard.');
+      } else {
+        setError('Email atau password salah. Periksa kembali data yang Anda masukkan.');
+      }
     }
   };
 

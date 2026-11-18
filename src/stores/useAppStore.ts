@@ -97,6 +97,7 @@ interface AppState {
   isAuthenticated: boolean;
   authModalOpen: boolean;
   authMode: 'login' | 'register';
+  authError: string | null;
   ownerSection: OwnerSection;
   adminSection: AdminSection;
   
@@ -196,6 +197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
   authModalOpen: false,
   authMode: 'login',
+  authError: null,
   ownerSection: 'overview',
   adminSection: 'overview',
   currentBooking: null,
@@ -244,9 +246,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         // ignore
       }
 
-      set({ currentUser: mapAuthUser(user, dbRole), isAuthenticated: true, authModalOpen: false });
+      set({ currentUser: mapAuthUser(user, dbRole), isAuthenticated: true, authModalOpen: false, authError: null });
       return true;
-    } catch {
+    } catch (err: any) {
+      set({ authError: err?.message || 'Login gagal' });
       return false;
     }
   },
