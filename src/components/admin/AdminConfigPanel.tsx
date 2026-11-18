@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAdminConfigStore } from '../../stores/useAdminConfigStore';
 import { defaultRuntimeSettings, getRuntimeSettings, saveRuntimeSettings, RuntimeSettings } from '../../services/runtimeSettingsService';
+import ChangePasswordForm from '../ChangePasswordForm';
 
 export default function AdminConfigPanel() {
   const { config, updateConfig, resetToDefaults } = useAdminConfigStore();
@@ -264,6 +265,10 @@ export default function AdminConfigPanel() {
             ))}
           </div>
         </motion.div>
+
+        <div className="mt-8">
+          <ChangePasswordForm title="Ganti Kata Sandi Administrator" subtitle="Perbarui kata sandi akun Admin untuk menjaga keamanan akses platform Renmoku." />
+        </div>
 
         {/* Reset Confirmation Modal */}
         {showResetConfirm && (

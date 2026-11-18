@@ -23,6 +23,7 @@ import AdminGPSSettings from './pages/admin/AdminGPSSettings';
 import VehicleMonitoring from './pages/owner/VehicleMonitoring';
 import AdminVehicleReviewPage from './pages/admin/AdminVehicleReviewPage';
 import SingleVehicleLiveMapPage from './pages/owner/SingleVehicleLiveMapPage';
+import EmailConfirmedPage from './pages/EmailConfirmedPage';
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from './stores/useAppStore';
@@ -40,6 +41,8 @@ function App() {
       const pageParam = urlParams.get('page');
       if (pageParam === 'vehicle-live-map') {
         useAppStore.getState().setCurrentPage('vehicle-live-map');
+      } else if (pageParam === 'email-confirmed' || window.location.hash.includes('type=signup') || window.location.hash.includes('access_token')) {
+        useAppStore.getState().setCurrentPage('email-confirmed');
       }
     } catch {
       // ignore
@@ -48,13 +51,15 @@ function App() {
 
   const renderPage = () => {
     // Route protection - check access before rendering
-    if (currentPage !== 'auth' && currentPage !== 'unauthorized' && currentPage !== 'home' && currentPage !== 'fleet' && currentPage !== 'terms' && currentPage !== 'database') {
+    if (currentPage !== 'auth' && currentPage !== 'unauthorized' && currentPage !== 'home' && currentPage !== 'fleet' && currentPage !== 'terms' && currentPage !== 'database' && currentPage !== 'email-confirmed') {
       if (!canAccessRoute(`/${currentPage}`)) {
         return <UnauthorizedPage />;
       }
     }
 
     switch (currentPage) {
+      case 'email-confirmed':
+        return <EmailConfirmedPage />;
       case 'home':
         return <LandingPage />;
       case 'fleet':

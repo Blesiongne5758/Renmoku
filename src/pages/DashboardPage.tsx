@@ -18,6 +18,7 @@ import NotificationBell from '../components/NotificationBell';
 import BookingChat from '../components/BookingChat';
 import BookingContractViewer from '../components/BookingContractViewer';
 import RenterIdentityForm, { RenterIdentity } from '../components/RenterIdentityForm';
+import ChangePasswordForm from '../components/ChangePasswordForm';
 import { applyDocumentWatermark } from '../services/documentWatermark';
 
 type DashboardTab = 'overview' | 'bookings' | 'fleet' | 'revenue' | 'upload360' | 'settings' | 'profile';
@@ -134,7 +135,8 @@ export default function DashboardPage() {
         { id: 'overview' as DashboardTab, label: 'Overview', icon: LayoutDashboard },
         { id: 'bookings' as DashboardTab, label: 'Booking Saya', icon: Calendar },
         { id: 'fleet' as DashboardTab, label: 'Cari Kendaraan', icon: Car },
-        { id: 'profile' as DashboardTab, label: 'Profil', icon: User },
+        { id: 'profile' as DashboardTab, label: 'Profil & Dokumen', icon: User },
+        { id: 'settings' as DashboardTab, label: 'Pengaturan Akun', icon: Settings },
       ];
 
   return (
@@ -433,13 +435,15 @@ export default function DashboardPage() {
         )}
 
         {/* Settings Tab (Owner only) */}
-        {activeTab === 'settings' && isOwner && (
+        {activeTab === 'settings' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-            {/* DP Settings */}
+            {isOwner && (
+              <>
+          {/* DP Settings */}
             <div className="glass rounded-2xl p-6 border border-gold-500/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gold-500/10 flex items-center justify-center">
@@ -651,6 +655,10 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
+              </>
+            )}
+
+            <ChangePasswordForm title="Ganti Kata Sandi Akun" subtitle="Perbarui kata sandi akun Anda untuk menjaga keamanan akses portal Renmoku." />
           </motion.div>
         )}
 
@@ -833,6 +841,10 @@ export default function DashboardPage() {
               <div className="rounded-xl border border-yellow-400/15 bg-yellow-400/[.03] p-3 text-xs leading-5 text-gray-400">Dokumen identitas dan selfie akan diberi watermark Renmoku permanen sebelum tersimpan. Hanya Anda dan admin yang dapat membuka dokumen; pemilik rental hanya melihat dokumen kontrak yang memang terkait booking.</div>
               <button disabled={profileSaving} className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-semibold text-black disabled:opacity-60">{profileSaving ? 'Menyimpan profil & watermark…' : 'Simpan profil dan dokumen'}</button>
             </form>
+
+            <div className="mt-8 border-t border-white/10 pt-6">
+              <ChangePasswordForm title="Ganti Kata Sandi Akun" subtitle="Perbarui kata sandi Anda secara berkala untuk menjaga keamanan akun." />
+            </div>
           </motion.section>
         )}
 

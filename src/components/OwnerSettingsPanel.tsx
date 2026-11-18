@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { cloudinaryHelpers } from '../lib/cloudinary';
 import { useAppStore } from '../stores/useAppStore';
+import ChangePasswordForm from './ChangePasswordForm';
 
 type PrivateDetails = {
   bank_name: string;
@@ -142,6 +143,8 @@ export default function OwnerSettingsPanel() {
         {schemaMissing && <p className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-200">Tabel aman untuk data rekening dan asuransi belum tersedia. Terapkan skrip <code>supabase/owner_features.sql</code> pada SQL Editor Supabase agar data dapat disimpan dengan kebijakan akses per pengguna.</p>}
         <button onClick={() => void savePrivateDetails()} disabled={loading} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-60"><Save className="h-4 w-4" />{loading ? 'Menyimpan…' : 'Simpan data rekening & asuransi'}</button>
       </section>
+
+      <ChangePasswordForm title="Ganti Kata Sandi Pemilik Rental" subtitle="Perbarui password akun Anda untuk menjaga keamanan akses portal pemilik." />
     </div>
   );
 }

@@ -13,11 +13,16 @@ export const authService = {
     account_type?: 'individual' | 'corporate' | 'owner';
     company_name?: string;
   }) => {
+    const redirectUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}?page=email-confirmed`
+      : 'https://www.renmoku.biz.id/?page=email-confirmed';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: metadata,
+        emailRedirectTo: redirectUrl,
       },
     });
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authService } from '../services/supabaseService';
+import { supabase } from '../lib/supabase';
 
 // === TYPES ===
 export type UserRole = 'individual' | 'corporate' | 'owner' | 'admin';
@@ -148,10 +149,24 @@ export interface RegisterData {
   npwp?: string;
 }
 
-const mapAuthUser = (authUser: { id: string; email?: string; phone?: string; user_metadata?: Record<string, unknown> }): User => {
+const mapAuthUser = (
+  authUser: { id: string; email?: string; phone?: string; user_metadata?: Record<string, unknown> },
+  dbRole?: string
+): User => {
   const metadata = authUser.user_metadata ?? {};
   const accountType = metadata.account_type;
-  const role: UserRole = accountType === 'owner' || accountType === 'corporate' ? accountType : 'individual';
+  const metaRole = (metadata.role as string | undefined)?.toUpperCase();
+  const normalizedDbRole = dbRole?.toUpperCase();
+
+  let role: UserRole = 'individual';
+  if (normalizedDbRole === 'ADMIN' || metaRole === 'ADMIN' || accountType === 'admin') {
+    role = 'admin';
+  } else if (normalizedDbRole === 'OWNER' || metaRole === 'OWNER' || accountType === 'owner') {
+    role = 'owner';
+  } else if (accountType === 'corporate') {
+    role = 'corporate';
+  }
+
   return {
     id: authUser.id,
     name: typeof metadata.full_name === 'string' ? metadata.full_name : (authUser.email?.split('@')[0] ?? 'Pengguna'),
@@ -213,9 +228,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   login: async (email: string, password: string) => {
     try {
-      const { user } = await authService.login(email.trim().toLowerCase(), password);
+      const cleanEmail = email.trim().toLowerCase();
+      const { user } = await authService.login(cleanEmail, password);
       if (!user) return false;
-      set({ currentUser: mapAuthUser(user), isAuthenticated: true, authModalOpen: false });
+
+      let dbRole: string | undefined;
+      try {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        dbRole = profile?.role;
+      } catch {
+        // ignore
+      }
+
+      set({ currentUser: mapAuthUser(user, dbRole), isAuthenticated: true, authModalOpen: false });
       return true;
     } catch {
       return false;
@@ -243,7 +272,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   restoreSession: async () => {
     try {
       const session = await authService.getSession();
-      if (session?.user) set({ currentUser: mapAuthUser(session.user), isAuthenticated: true });
+      if (session?.user) {
+        let dbRole: string | undefined;
+        try {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          dbRole = profile?.role;
+        } catch {
+          // ignore
+        }
+        set({ currentUser: mapAuthUser(session.user, dbRole), isAuthenticated: true });
+      }
     } catch {
       // Keep the signed-out state when session restoration is unavailable.
     }
